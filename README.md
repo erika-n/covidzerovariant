@@ -3,6 +3,8 @@ Covid Zero charts for B117 variant
 
 Creates charts of alternative scenarios for development of covid given the new variant B117.
 
+NEEDS REVIEW BEFORE PUBLISHING CHARTS
+
 Usage: python new_variant_estimate.py
 
 Change state and days history/projection in the code.

@@ -218,6 +218,7 @@ def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_c
     # initial cases per day for B117 variant
     if state in percent_cases_variant:
       init_variant_cases = percent_cases_variant[state]*init_covid_cases
+      init_covid_cases -= init_variant_cases
     else:
       print('This state does not have variant data')
       exit()
@@ -432,5 +433,5 @@ if __name__ == '__main__':
 #   The covid tracking project (https://covidtracking.com/data) for historical rates (using JSON API for daily rates, see below)
 # 	Epiforecasts: https://epiforecasts.io/covid/posts/national/united-states/ for R for projection for old variant
 #   Helix: https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard for new variant percent
-# Growth rate for new variant: Martina Reichmuth et al 2021, "Transmission of SARS-CoV-2 variants in Switzerland", https://ispmbern.github.io/covid-19/variants/ (~50% higher transmission)
+#   Growth rate for new variant: Martina Reichmuth et al 2021, "Transmission of SARS-CoV-2 variants in Switzerland", https://ispmbern.github.io/covid-19/variants/ (~50% higher transmission)
 

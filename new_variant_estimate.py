@@ -120,7 +120,7 @@ def padColumn(data, column, n_pad):
 # Set up each matplotlib axis
 def setUpAxis(axis, y_cutoff):
   # DATE FORMATTER #
-  date_form = DateFormatter("%b-%y")
+  date_form = DateFormatter("%#m/%#d")
 
 
   # SETTING LABEL TO TOP & FORMATTING DATE #
@@ -130,8 +130,8 @@ def setUpAxis(axis, y_cutoff):
 
 
   # SETTING TICK PARAMATERS #
-  axis.tick_params(axis='y',labelcolor= 'grey',labelsize = 12,width=0, length=8)
-  axis.tick_params(axis='x',labelcolor= 'grey',labelsize = 12,labelrotation=0, width=1.5, length=8)
+  axis.tick_params(axis='y',labelcolor= 'grey',labelsize = 18,width=0, length=8)
+  axis.tick_params(axis='x',labelcolor= 'grey',labelsize = 18,labelrotation=0, width=1.5, length=8)
 
   # SETTING TICK LIMITS #
   #axis.set_ylim(bottom=0)
@@ -193,7 +193,7 @@ def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_c
 
     dates = pd.date_range(start=data['date'][len(data) -1 ],periods=(len(data) + n_days_projection), freq='D')
     date = data['date'][0]
-    date = date.strftime("%#m-%#d-%Y")
+    date = date.strftime("%#m-%#d")
 
     # PROJECTIONS #
 
@@ -274,28 +274,28 @@ def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_c
 
 
     # PROJECTION PLOTS #
-    axis.plot(dates, projection_covid, '--', color='blue', lw=1, label=r"Projected new cases: Old variants, R=%.2f"% (R_covid))
-    axis.plot(dates, projection_variant, '--', color='red', lw=2, label=r"Projected new cases: Variant B.1.1.7, R=%.2f (estimated 50%% > baseline)"%(R_variant))
-    axis.plot(dates, projection_total, color='blue', lw=1, label="Projected new cases: Sum")
+    axis.plot(dates, projection_covid, '--', color='blue', lw=1, label=r"Old variants, R=%.2f"% (R_covid))
+    axis.plot(dates, projection_variant, '--', color='red', lw=2, label=r"Variant B117, R=%.2f"%(R_variant))
+    axis.plot(dates, projection_total, color='blue', lw=1, label="Total cases")
  
 
 
     # HISTORICAL: LINE PLOT #
-    axis.plot(dates, average, color = 'black', lw=3, label='New cases (historical): 7 day average')
+    axis.plot(dates, average, color = 'black', lw=3, label='Hitorical cases: 7 day average')
 
 
     # HISTORICAL: SCATTER PLOT #
-    axis.scatter(x=dates, y=positiveIncrease, color ='grey', label="New cases (historical)")
+    axis.scatter(x=dates, y=positiveIncrease, color ='grey', label="Historical cases")
 
     # PLOT LINE TO KEEP X AXIS VALUES #
-    axis.plot(dates, np.zeros(dates.size), color='black')
+    #axis.plot(dates, np.zeros(dates.size), color='black')
 
     # VERTICAL LINES
-    if use_crossover_point:
-      crossover_line_height = 0.5*positiveIncrease[:-n_days_projection - 1].max()
+    # if use_crossover_point:
+    #   crossover_line_height = 0.5*positiveIncrease[:-n_days_projection - 1].max()
 
-      crossover_line_str = r"New variant dominant on %s"%(crossover_date.strftime("%m-%d-%Y"))
-      axis.vlines(crossover_date, 0, crossover_line_height, color='pink', lw=3, label=crossover_line_str)
+    #   crossover_line_str = r"New variant dominant on %s"%(crossover_date.strftime("%m-%d-%Y"))
+    #   axis.vlines(crossover_date, 0, crossover_line_height, color='pink', lw=3, label=crossover_line_str)
 
     # if x_cutoff > 0:
     #   cutoff_line_height = 0.7*positiveIncrease[:-n_days_projection - 1].max()
@@ -307,36 +307,36 @@ def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_c
 
     # ANNOTATIONS
 
-    # round numbers
-    init_covid_cases_str = str(int(10*round(init_covid_cases/10))) 
-    init_variant_cases_str = str(int(10*round(init_variant_cases/10)))
-    crossover_cases_str = str(int(10*round(crossover_cases/10)))
-    end_cases_str = str(int(10*round(end_cases/10)))
-    end_cases_str += ': ' + dates[x_cutoff - 1].strftime("%m-%d-%Y")
-    # annotate numbers for initial conditions
-    axis.annotate(init_covid_cases_str, 
-      xy=(dates[n_days_data - 1], init_covid_cases + 100),
-      xytext=(dates[n_days_data + 2], init_covid_cases + 1500),
-      arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='blue'),
-      color='blue')
-    axis.annotate(init_variant_cases_str, 
-      xy=(dates[n_days_data -1 ], init_variant_cases + 100),
-      xytext=(dates[n_days_data + 2], init_variant_cases + 1500),
-      arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='red'),
-      color='red')
-    # annotate crossover point
-    if use_crossover_point:
-      axis.annotate(crossover_cases_str, 
-        xy=(crossover_date, crossover_cases + 100),
-        xytext=(crossover_date, crossover_cases + 1500),
-        arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='blue'),
-        color='blue')    
-    # annotate end value and date
-    axis.annotate(end_cases_str, 
-      xy=(dates[x_cutoff - 1], end_cases + 0),
-      xytext=(dates[x_cutoff - 6], end_cases + 1500),
-      arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='blue'),
-      color='blue')  
+    # # round numbers
+    # init_covid_cases_str = str(int(10*round(init_covid_cases/10))) 
+    # init_variant_cases_str = str(int(10*round(init_variant_cases/10)))
+    # crossover_cases_str = str(int(10*round(crossover_cases/10)))
+    # end_cases_str = str(int(10*round(end_cases/10)))
+    # end_cases_str += ': ' + dates[x_cutoff - 1].strftime("%m-%d-%Y")
+    # # annotate numbers for initial conditions
+    # axis.annotate(init_covid_cases_str, 
+    #   xy=(dates[n_days_data - 1], init_covid_cases + 100),
+    #   xytext=(dates[n_days_data + 2], init_covid_cases + 1500),
+    #   arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='blue'),
+    #   color='blue')
+    # axis.annotate(init_variant_cases_str, 
+    #   xy=(dates[n_days_data -1 ], init_variant_cases + 100),
+    #   xytext=(dates[n_days_data + 2], init_variant_cases + 1500),
+    #   arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='red'),
+    #   color='red')
+    # # annotate crossover point
+    # if use_crossover_point:
+    #   axis.annotate(crossover_cases_str, 
+    #     xy=(crossover_date, crossover_cases + 100),
+    #     xytext=(crossover_date, crossover_cases + 1500),
+    #     arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='blue'),
+    #     color='blue')    
+    # # annotate end value and date
+    # axis.annotate(end_cases_str, 
+    #   xy=(dates[x_cutoff - 1], end_cases + 0),
+    #   xytext=(dates[x_cutoff - 6], end_cases + 1500),
+    #   arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='blue'),
+    #   color='blue')  
 
 
 

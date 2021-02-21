@@ -17,6 +17,8 @@ import urllib.request, json
 import os
 
 from matplotlib import rcParams
+from labellines import labelLines
+from scipy import ndimage
 
 # Estimate projections for old, new, and combined variants per U.S. state
 
@@ -98,6 +100,8 @@ def projectCases(R, init_cases, n_days=30, pad=0, generation=4):
 
     return projection
 
+
+
 # Get historical data for this state
 def getDataForState(data, state):
 
@@ -146,8 +150,8 @@ def setUpAxis(axis, y_cutoff):
 
   axis.set_ylim((0, int(y_cutoff)))
 
-
-  axis.legend()        
+  if legend:
+    axis.legend()        
 
 
   # SETTING GRID #
@@ -186,7 +190,7 @@ M. Reichmuth et al 2021 (~50% infection rate increase for new variant)"""
 
 # Make a sub-chart of historical and projection data
 def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid, R_variant, 
-    axis, header_text, n_days_data, n_days_projection):
+    axis, header_text, n_days_data, n_days_projection, legend=False):
 
     data=df_historical[:n_days_data]
 
@@ -247,12 +251,12 @@ def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_c
     x_cutoff = np.where(projection_total > y_cutoff)
 
     if len(x_cutoff) > 0 and x_cutoff[0].size > 0:
-      x_cutoff = x_cutoff[0][0] - 1
+      x_cutoff = x_cutoff[0][0] 
 
       if x_cutoff > 1:
-        projection_total[x_cutoff:] = np.nan
+        projection_total[x_cutoff + 1:] = np.nan
 
-        projection_variant[x_cutoff:] = np.nan
+        projection_variant[x_cutoff + 1:] = np.nan
         #projection_covid[x_cutoff:] = np.nan
     else:
       x_cutoff = -1
@@ -273,85 +277,27 @@ def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_c
 
 
 
-    # PROJECTION PLOTS #
-    axis.plot(dates, projection_covid, '--', color='blue', lw=1, label=r"Old variants, R=%.2f"% (R_covid))
-    axis.plot(dates, projection_variant, '--', color='red', lw=2, label=r"Variant B117, R=%.2f"%(R_variant))
-    axis.plot(dates, projection_total, color='blue', lw=1, label="Total cases")
- 
-
-
     # HISTORICAL: LINE PLOT #
-    axis.plot(dates, average, color = 'black', lw=3, label='Hitorical cases: 7 day average')
+    axis.plot(dates, average, color = 'black', lw=3, label='7 day avg')
 
 
-    # HISTORICAL: SCATTER PLOT #
-    axis.scatter(x=dates, y=positiveIncrease, color ='grey', label="Historical cases")
+    # PROJECTION PLOTS #
 
-    # PLOT LINE TO KEEP X AXIS VALUES #
-    #axis.plot(dates, np.zeros(dates.size), color='black')
-
-    # VERTICAL LINES
-    # if use_crossover_point:
-    #   crossover_line_height = 0.5*positiveIncrease[:-n_days_projection - 1].max()
-
-    #   crossover_line_str = r"New variant dominant on %s"%(crossover_date.strftime("%m-%d-%Y"))
-    #   axis.vlines(crossover_date, 0, crossover_line_height, color='pink', lw=3, label=crossover_line_str)
-
-    # if x_cutoff > 0:
-    #   cutoff_line_height = 0.7*positiveIncrease[:-n_days_projection - 1].max()
-    #   cutoff_date = dates[x_cutoff - 1]
-    #   crossover_line_str = cutoff_date.strftime("%m-%d-%Y")
-    #   axis.vlines(cutoff_date, 0, cutoff_line_height, color='grey', lw=1, label=crossover_line_str)
-
-
-
-    # ANNOTATIONS
-
-    # # round numbers
-    # init_covid_cases_str = str(int(10*round(init_covid_cases/10))) 
-    # init_variant_cases_str = str(int(10*round(init_variant_cases/10)))
-    # crossover_cases_str = str(int(10*round(crossover_cases/10)))
-    # end_cases_str = str(int(10*round(end_cases/10)))
-    # end_cases_str += ': ' + dates[x_cutoff - 1].strftime("%m-%d-%Y")
-    # # annotate numbers for initial conditions
-    # axis.annotate(init_covid_cases_str, 
-    #   xy=(dates[n_days_data - 1], init_covid_cases + 100),
-    #   xytext=(dates[n_days_data + 2], init_covid_cases + 1500),
-    #   arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='blue'),
-    #   color='blue')
-    # axis.annotate(init_variant_cases_str, 
-    #   xy=(dates[n_days_data -1 ], init_variant_cases + 100),
-    #   xytext=(dates[n_days_data + 2], init_variant_cases + 1500),
-    #   arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='red'),
-    #   color='red')
-    # # annotate crossover point
-    # if use_crossover_point:
-    #   axis.annotate(crossover_cases_str, 
-    #     xy=(crossover_date, crossover_cases + 100),
-    #     xytext=(crossover_date, crossover_cases + 1500),
-    #     arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='blue'),
-    #     color='blue')    
-    # # annotate end value and date
-    # axis.annotate(end_cases_str, 
-    #   xy=(dates[x_cutoff - 1], end_cases + 0),
-    #   xytext=(dates[x_cutoff - 6], end_cases + 1500),
-    #   arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='blue'),
-    #   color='blue')  
-
-
-
-    
+    old_var_str = r"Old: R=%.2f"% (R_covid)
+    new_var_str = r"B117: R=%.2f"%(R_variant)
+    axis.plot(dates, projection_covid, '--', color='blue', lw=1, label=old_var_str)
+    axis.plot(dates, projection_variant, '--', color='red', lw=2, label=new_var_str)
+    axis.plot(dates, projection_total, color='blue', lw=1, label="Total")
 
 
     # SUBPLOT TITLE#
     axis.set_title(header_text,fontsize=18, y=1.03, alpha=0.5)
 
     setUpAxis(axis, y_cutoff + 0.7*y_cutoff)
- 
 
 
 # Make a two paneled chart for the given state and values
-def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=False):
+def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=False, legend=False):
 
   state_full_name = str(states[state])
   
@@ -376,7 +322,7 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
     df_historical = pd.read_csv(filepath_historical)
 
   # SET UP DATA
-  # histoical
+  # historical
   df_historical['date'] = pd.to_datetime(df_historical.date, format='%Y%m%d')
   df_historical = getDataForState(df_historical, state)
 
@@ -407,12 +353,15 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
 
   title_current = r'SAMPLE Current %d day projections for %s on %s'% (n_days_projection, state_full_name, date)
   title_covidzero = 'SAMPLE Solution: #COVIDZero'
-  makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid, R_variant, axes[0], title_current, n_days_data, n_days_projection)
-  makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid_lockdown, R_variant_lockdown, axes[1], title_covidzero, n_days_data, n_days_projection)
+  makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid, R_variant, axes[0], title_current, n_days_data, n_days_projection, legend=legend)
+  makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid_lockdown, R_variant_lockdown, axes[1], title_covidzero, n_days_data, n_days_projection, legend=legend)
 
   filename = r'figs\projection_%s_%s.png'% (state, date)
 
+
+
   plt.savefig(filename, dpi=150, bbox_inches='tight', pad_inches=1)
+  
   print('Saved ', filename)
   plt.show()
 
@@ -420,13 +369,14 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
   
 if __name__ == '__main__':
   # SETTINGS #
-  state = 'MA'
+  state = 'CA'
   n_days_projection = 60
   n_days_data = 60
   data_folder = 'data_02_15'
   update_data = False
+  legend = True
 
-  makeChart(state, n_days_projection, n_days_data, data_folder, update_data)
+  makeChart(state, n_days_projection, n_days_data, data_folder, update_data, legend=legend)
 
 
 # Data Sources:

@@ -84,6 +84,16 @@ states = {
 }
 
 
+# from https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard
+# (@helix)
+# Collcted on 2/20/2021
+# 5 day moving average for last day counted (February 13 or 14)
+percent_cases_variant = {
+  'FL': 0.1604,
+  'MA': 0.0455,
+  'CA': 0.06706
+}
+
 # Make a projection for cases over n_days
 # R: reproduction rate
 # init_cases: initial number of cases
@@ -208,15 +218,7 @@ def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_c
 
     y_cutoff = data['average'].max()
 
-    # from https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard
-    # (@helix)
-    # Collcted on 2/20/2021
-    # 5 day moving average for last day counted (February 13 or 14)
-    percent_cases_variant = {
-      'FL': 0.1604,
-      'MA': 0.0455,
-      'CA': 0.06706
-    }
+
 
 
     # initial cases per day for B117 variant
@@ -341,7 +343,9 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
   axes = setUpPlots(2)
 
   
-  R_covid = float(df_r_estimates['R'][state_full_name])
+  R0 = float(df_r_estimates['R'][state_full_name])
+  pct_variant = percent_cases_variant[state]
+  R_covid = R0/(1.5*pct_variant + (1-pct_variant))
   R_variant = 1.5*R_covid # 50% increas in reproduction rate
 
   R_covid_lockdown = 0.6 # example value

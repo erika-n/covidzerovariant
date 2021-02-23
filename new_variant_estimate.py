@@ -132,14 +132,14 @@ def padColumn(data, column, n_pad):
   return average
 
 # Set up each matplotlib axis
-def setUpAxis(axis, y_cutoff):
+def setUpAxis(axis, y_cutoff, labels=False):
   # DATE FORMATTER #
   date_form = DateFormatter("%#m/%#d")
 
 
   # SETTING LABEL TO TOP & FORMATTING DATE #
   
-  axis.xaxis.set_label_position('top')
+  axis.xaxis.set_label_position('bottom')
   axis.xaxis.set_major_formatter(date_form)    
 
 
@@ -160,12 +160,13 @@ def setUpAxis(axis, y_cutoff):
 
   axis.set_ylim((0, int(y_cutoff)))
 
-  if legend:
-    axis.legend()        
-
 
   # SETTING GRID #
   axis.grid(axis='y')
+
+  if labels:
+    axis.set_xlabel('Date', fontsize=18, color='grey', labelpad=8)
+    axis.set_ylabel('Cases', fontsize=18, color='grey', labelpad=8)
 
 
 
@@ -193,14 +194,14 @@ The Covid Tracking Project (historical data)
 Epiforecasts (projected R for old variant)
 Helix (B117 percentage)
 M. Reichmuth et al 2021 (~50% infection rate increase for new variant)"""
-      , ha="center", fontsize=12, bbox={ "facecolor":"white", "pad":5})
+      , ha="center", fontsize=14, bbox={ "facecolor":"white", "pad":5})
 
   return axes
 
 
 # Make a sub-chart of historical and projection data
 def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid, R_variant, 
-    axis, header_text, n_days_data, n_days_projection, legend=False):
+    axis, header_text, n_days_data, n_days_projection, legend=False, current=True):
 
     data=df_historical[:n_days_data]
 
@@ -219,8 +220,6 @@ def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_c
     y_cutoff = data['average'].max()
 
 
-
-
     # initial cases per day for B117 variant
     if state in percent_cases_variant:
       init_variant_cases = percent_cases_variant[state]*init_covid_cases
@@ -232,23 +231,8 @@ def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_c
     projection_covid = projectCases(R_covid, init_covid_cases, n_days_projection + 1,generation=generation, pad=len(data) - 1)
     projection_variant = projectCases(R_variant, init_variant_cases, n_days_projection + 1, generation=generation, pad=len(data) - 1 )
     projection_total = projection_covid + projection_variant
-    projection_diff = np.abs(projection_covid - projection_variant)[-n_days_projection:]
 
-    # crossover point where original and variant strains are equal (if exists)
-    use_crossover_point = True
-    crossover_point = np.argmin(projection_diff)
-    crossover_point += len(data)
-    crossover_date = dates[crossover_point]
-    crossover_cases = projection_total[crossover_point]
-
-
-  
-
-    if crossover_point >= len(projection_total) - 1 or projection_total[crossover_point + 1] < projection_total[crossover_point]:
-      use_crossover_point = False
-
-
-
+    
     # cutoff greater than y_cutoff
     x_cutoff = np.where(projection_total > y_cutoff)
 
@@ -264,18 +248,9 @@ def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_c
       x_cutoff = -1
 
 
-    # total cases at end of projection window
-
-    if x_cutoff > 1:
-      end_cases = projection_total[x_cutoff - 1]
-    else:
-      end_cases = projection_total[-1]
-
-
 
     # HISTORICAL DATA
     average = padColumn(data, 'average', n_days_projection)
-    positiveIncrease = padColumn(data, 'positiveIncrease', n_days_projection)
 
 
 
@@ -292,10 +267,94 @@ def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_c
     axis.plot(dates, projection_total, color='blue', lw=1, label="Total")
 
 
-    # SUBPLOT TITLE#
-    axis.set_title(header_text,fontsize=18, y=1.03, alpha=0.5)
+    # ANNOTATIONS
 
-    setUpAxis(axis, y_cutoff + 0.7*y_cutoff)
+    # if current:
+    # # historical average
+    #   historical_index = int(n_days_data/2)
+    #   historical_date = dates[historical_index]
+    #   historical_date_text = dates[historical_index + 8]
+    #   historical_value = average[historical_index]
+    #   axis.annotate('7 Day Avg', 
+    #     xy=(historical_date, historical_value+ 0.01*y_cutoff),
+    #     xytext=(historical_date_text, historical_value + 0.1*y_cutoff),
+    #     arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='black'),
+    #     fontsize=14,
+    #     color='black',
+    #     fontweight='medium')
+
+    #   total_index = int(n_days_data + 0.6*n_days_projection)
+    #   total_date = dates[total_index]
+    #   total_date_text = dates[total_index]
+    #   total_value = projection_total[total_index]
+    #   axis.annotate('Total', 
+    #     xy=(total_date, total_value + 0.005*y_cutoff),
+    #     xytext=(total_date_text, total_value + 0.1*y_cutoff),
+    #     arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='blue'),
+    #     fontsize=14,
+    #     color='blue',
+    #     fontweight='medium')
+
+
+
+    #   oldv_index = int(n_days_data + 4)
+    #   oldv_date = dates[oldv_index]
+    #   oldv_date_text = dates[int(0.4*oldv_index)]
+    #   oldv_value = projection_covid[oldv_index]
+    #   print(oldv_index, oldv_value)
+    #   axis.annotate('Old Variants', 
+    #     xy=(oldv_date, oldv_value),
+    #     xytext=(oldv_date_text, oldv_value + 0.02*y_cutoff),
+    #     arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='blue'),
+    #     fontsize=14,
+    #     color='blue',
+    #     fontweight='medium')    
+
+
+    #   newv_index = int(n_days_data + 0.1*n_days_projection)
+    #   newv_date = dates[newv_index]
+    #   newv_date_text = dates[int(1.05*newv_index)]
+    #   newv_value = projection_variant[newv_index]
+    #   print(oldv_index, oldv_value)
+    #   axis.annotate('New Variants', 
+    #     xy=(newv_date, newv_value + 0.01*y_cutoff),
+    #     xytext=(newv_date_text, newv_value + 0.2*y_cutoff),
+    #     arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='red'),
+    #     fontsize=14,
+    #     color='red',
+    #     fontweight='medium')    
+    # axis.annotate(init_variant_cases_str, 
+    #   xy=(dates[n_days_data -1 ], init_variant_cases + 100),
+    #   xytext=(dates[n_days_data + 2], init_variant_cases + 1500),
+    #   arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='red'),
+    #   color='red')
+    # # annotate crossover point
+    # if use_crossover_point:
+    #   axis.annotate(crossover_cases_str, 
+    #     xy=(crossover_date, crossover_cases + 100),
+    #     xytext=(crossover_date, crossover_cases + 1500),
+    #     arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='blue'),
+    #     color='blue')    
+    # # annotate end value and date
+    # axis.annotate(end_cases_str, 
+    #   xy=(dates[x_cutoff - 1], end_cases + 0),
+    #   xytext=(dates[x_cutoff - 6], end_cases + 1500),
+    #   arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color='blue'),
+    #   color='blue')  
+
+
+
+    # SUBPLOT TITLE#
+    axis.set_title(header_text,fontsize=18, y=1.03, alpha=0.9, fontweight='bold')
+
+    axis_cutoff = 1.25*y_cutoff
+    
+    axis_cutoff = int(1500*axis_cutoff)/1500 -1
+    setUpAxis(axis, axis_cutoff, current)
+    
+    if legend:
+      axis.legend(fontsize=14, loc='best')        
+
 
 
 # Make a two paneled chart for the given state and values
@@ -344,21 +403,26 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
 
   
   R0 = float(df_r_estimates['R'][state_full_name])
-  pct_variant = percent_cases_variant[state]
+  pct_variant = percent_cases_variant[state]*0.5 # ~ 50% of SGTF tests are B117
   R_covid = R0/(1.5*pct_variant + (1-pct_variant))
   R_variant = 1.5*R_covid # 50% increas in reproduction rate
 
   R_covid_lockdown = 0.6 # example value
   R_variant_lockdown = 1.5*R_covid_lockdown
 
-
+  print('R_covid, R_variant', R_covid, R_variant)
+  print('R_covid_lockdown, R_variant_lockdown', R_covid_lockdown, R_variant_lockdown)
   date = df_historical['date'][0]
   date = date.strftime("%#m-%#d-%Y")
 
-  title_current = r'SAMPLE Current %d day projections for %s on %s'% (n_days_projection, state_full_name, date)
-  title_covidzero = 'SAMPLE Solution: #COVIDZero'
-  makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid, R_variant, axes[0], title_current, n_days_data, n_days_projection, legend=legend)
-  makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid_lockdown, R_variant_lockdown, axes[1], title_covidzero, n_days_data, n_days_projection, legend=legend)
+  title_current = r'%s projections for new variants'% (state_full_name)
+  title_covidzero = '#CovidZero policies in place'
+  makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid, R_variant, axes[0], title_current, n_days_data, n_days_projection, legend=legend, current=True)
+ 
+  
+  makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid_lockdown, R_variant_lockdown, axes[1], title_covidzero, n_days_data, n_days_projection, legend=legend, current=False)
+
+
 
   filename = r'figs\projection_%s_%s.png'% (state, date)
 

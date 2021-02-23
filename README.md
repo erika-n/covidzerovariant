@@ -3,15 +3,17 @@ Covid Zero charts for B117 variant
 
 Creates charts of alternative scenarios for development of covid given the new variant B117.
 
-NEEDS REVIEW BEFORE PUBLISHING CHARTS
-
 Usage: python new_variant_estimate.py
 
-Change state and days history/projection in the code.
+Current charts are for Feb. 14 2021 
 
-Current data is for Feb. 14 2021
+Current states supported are CA, AZ, TX, GA, NC, LA, MI, IN, PA, MA, FL
+Other states have insufficient B117 data from Helix as of 2/23/2021
 
-Current states supported are MA, FL, and CA
+R Values:
+  Initial R0 is given by data from Epiforecasts
+  Old variants vs. new variant R assumes that new variant has 50% higher R than old variants
+  #covidzero R values are always 0.6 and 0.9, calculated from status where new variant is on a downward trajectory.
 
 Data Sources:
   The covid tracking project (https://covidtracking.com/data) for historical rates (using JSON API for daily rates)

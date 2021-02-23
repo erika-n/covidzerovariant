@@ -20,10 +20,12 @@ from matplotlib import rcParams
 from labellines import labelLines
 from scipy import ndimage
 
+
+
 # Estimate projections for old, new, and combined variants per U.S. state
 
 
-states = {
+state_abbrevs = {
   'AK': 'Alaska',
   'AL': 'Alabama',
   'AR': 'Arkansas',
@@ -84,15 +86,6 @@ states = {
 }
 
 
-# from https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard
-# (@helix)
-# Collcted on 2/20/2021
-# 5 day moving average for last day counted (February 13 or 14)
-percent_cases_variant = {
-  'FL': 0.1604,
-  'MA': 0.0455,
-  'CA': 0.06706
-}
 
 # Make a projection for cases over n_days
 # R: reproduction rate
@@ -119,7 +112,7 @@ def getDataForState(data, state):
   state_data.index = np.arange(len(state_data))
   window = 7
 
-  state_data['average'] = state_data['positiveIncrease'].rolling(window=window, min_periods=1, center=False).mean()
+  state_data['average'] = state_data['positiveIncrease'].iloc[::-1].rolling(window=window, min_periods=1, center=False).mean().iloc[::-1]
 
   state_data.fillna(0, inplace=True)
   return state_data
@@ -146,24 +139,18 @@ def setUpAxis(axis, y_cutoff, labels=False):
   # SETTING TICK PARAMATERS #
   axis.tick_params(axis='y',labelcolor= 'grey',labelsize = 18,width=0, length=8)
   axis.tick_params(axis='x',labelcolor= 'grey',labelsize = 18,labelrotation=0, width=1.5, length=8)
-
-  # SETTING TICK LIMITS #
-  #axis.set_ylim(bottom=0)
-
-  
-  # FOR PUTTING COMMAS IN NUMBERS #
-  #axis.set_yticklabels(['{:,}'.format(int(x)) for x in axis.get_yticks().tolist()])      
-
   ticks_loc = axis.get_yticks().tolist()
   axis.yaxis.set_major_locator(mticker.FixedLocator(ticks_loc))
   axis.set_yticklabels(['{:,}'.format(int(x)) for x in ticks_loc])
 
+  # SET Y LIMIT #
   axis.set_ylim((0, int(y_cutoff)))
 
 
   # SETTING GRID #
   axis.grid(axis='y')
 
+  # LABEL AXES #
   if labels:
     axis.set_xlabel('Date', fontsize=18, color='grey', labelpad=8)
     axis.set_ylabel('Cases', fontsize=18, color='grey', labelpad=8)
@@ -189,19 +176,19 @@ def setUpPlots(n_plots):
 
 
     # SETTING NOTE BELOW FIGURE #
-  plt.figtext(0.5, -0.15, """Data sources:
+  plt.figtext(0.5, -0.2, """Data sources:
 The Covid Tracking Project (historical data)
-Epiforecasts (projected R for old variant)
+Epiforecasts (projected R)
 Helix (B117 percentage)
-M. Reichmuth et al 2021 (~50% infection rate increase for new variant)"""
-      , ha="center", fontsize=14, bbox={ "facecolor":"white", "pad":5})
+M. Reichmuth et al 2021 (~50% increase for new variant)"""
+      , ha="center", fontsize=18, bbox={ "facecolor":"white", "pad":5})
 
   return axes
 
 
 # Make a sub-chart of historical and projection data
 def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid, R_variant, 
-    axis, header_text, n_days_data, n_days_projection, legend=False, current=True):
+    axis, header_text, n_days_data, n_days_projection, legend=False, current=True, pct_variant=1.0):
 
     data=df_historical[:n_days_data]
 
@@ -221,12 +208,10 @@ def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_c
 
 
     # initial cases per day for B117 variant
-    if state in percent_cases_variant:
-      init_variant_cases = percent_cases_variant[state]*init_covid_cases
-      init_covid_cases -= init_variant_cases
-    else:
-      print('This state does not have variant data')
-      exit()
+
+    init_variant_cases = pct_variant*init_covid_cases
+    init_covid_cases -= init_variant_cases
+
     # overlap one day between projection and original data
     projection_covid = projectCases(R_covid, init_covid_cases, n_days_projection + 1,generation=generation, pad=len(data) - 1)
     projection_variant = projectCases(R_variant, init_variant_cases, n_days_projection + 1, generation=generation, pad=len(data) - 1 )
@@ -272,7 +257,7 @@ def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_c
     # SUBPLOT TITLE#
     axis.set_title(header_text,fontsize=18, y=1.03, alpha=0.9, fontweight='bold')
 
-    axis_cutoff = 1.25*y_cutoff
+    axis_cutoff = 1.55*y_cutoff
     
     axis_cutoff = int(1500*axis_cutoff)/1500 -1
     setUpAxis(axis, axis_cutoff, current)
@@ -285,7 +270,7 @@ def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_c
 # Make a two paneled chart for the given state and values
 def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=False, legend=False):
 
-  state_full_name = str(states[state])
+  state_full_name = str(state_abbrevs[state])
   
 
 
@@ -295,7 +280,7 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
     os.makedirs('figs')
 
   
-  # DOWNLOAD DATA #
+  # DOWNLOAD HISTORICAL DATA #
   # automatic update of covidtracking.com data
   filepath_historical = data_folder + '/covid_daily.csv'  
   if update_data or not os.path.exists(filepath_historical):
@@ -311,7 +296,9 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
   # historical
   df_historical['date'] = pd.to_datetime(df_historical.date, format='%Y%m%d')
   df_historical = getDataForState(df_historical, state)
-
+  # last date of historical data
+  date = df_historical['date'][0]
+  date = date.strftime("%#m-%#d-%Y")
 
   # r estimates
   df_r_estimates = pd.read_csv(data_folder + '/Covid-19 National and Subnational estimates for the United States of America.csv', index_col=0)
@@ -323,54 +310,58 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
   df_emerging_variants = df_emerging_variants[df_emerging_variants['filter'] == 'Variant B.1.1.7']
   df_emerging_variants.rename(columns=lambda x: x.strip(), inplace=True)
 
+  # data on B117 rates
+  df_b117 = pd.read_csv(data_folder + '/Helix_B117.csv', index_col=0)
 
-  axes = setUpPlots(2)
-
-  
+  # Estimated R0
   R0 = float(df_r_estimates['R'][state_full_name])
-  pct_variant = percent_cases_variant[state]*0.5 # ~ 50% of SGTF tests are B117
+
+  # calculate pct_variant = pct cases SGTF*pct of SGTF cases B117 (5 day moving avg)
+  pct_SGTF = df_b117['pct_SGTF'][state]/100.0 
+  pct_SGTF_B117 = df_b117['pct_SGTF_B117'][state]/100.0
+  pct_variant = pct_SGTF*pct_SGTF_B117
+
+  # calculate R from estimated R0 for all cases
   R_covid = R0/(1.5*pct_variant + (1-pct_variant))
   R_variant = 1.5*R_covid # 50% increas in reproduction rate
 
-  R_covid_lockdown = 0.6 # example value
+  # lockdown R calculated from requirement to reduce total cases (variant R = 0.9)
+  R_covid_lockdown = 0.6 
   R_variant_lockdown = 1.5*R_covid_lockdown
 
-  print('R_covid, R_variant', R_covid, R_variant)
-  print('R_covid_lockdown, R_variant_lockdown', R_covid_lockdown, R_variant_lockdown)
-  date = df_historical['date'][0]
-  date = date.strftime("%#m-%#d-%Y")
 
-  title_current = r'%s projections for new variants'% (state_full_name)
+  # CHART SETUP
+  title_current = r'%s projections for new variants'% (state_full_name.upper())
   title_covidzero = '#CovidZero policies in place'
-  makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid, R_variant, axes[0], title_current, n_days_data, n_days_projection, legend=legend, current=True)
- 
-  
-  makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid_lockdown, R_variant_lockdown, axes[1], title_covidzero, n_days_data, n_days_projection, legend=legend, current=False)
 
-
+  axes = setUpPlots(2)
+  makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid, R_variant, axes[0], title_current, n_days_data, n_days_projection, legend=legend, current=True, pct_variant=pct_variant)
+  makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid_lockdown, R_variant_lockdown, axes[1], title_covidzero, n_days_data, n_days_projection, legend=legend, current=False, pct_variant=pct_variant)
 
   filename = r'figs\projection_%s_%s.png'% (state, date)
-
-
-
   plt.savefig(filename, dpi=150, bbox_inches='tight', pad_inches=1)
   
   print('Saved ', filename)
-  plt.show()
+  #plt.show()
 
 
   
 if __name__ == '__main__':
   # SETTINGS #
-  state = 'CA'
   n_days_projection = 60
   n_days_data = 60
-  data_folder = 'data_02_15'
+  data_folder = 'data'
   update_data = False
   legend = True
+  state = 'ALL'
 
-  makeChart(state, n_days_projection, n_days_data, data_folder, update_data, legend=legend)
-
+  df_b117 = pd.read_csv(data_folder + '/Helix_B117.csv')
+  states = df_b117['state']
+  if state == 'ALL':
+    for state in states:
+      makeChart(state, n_days_projection, n_days_data, data_folder, update_data, legend=legend)
+  else:
+    makeChart(state, n_days_projection, n_days_data, data_folder, update_data, legend=legend)
 
 # Data Sources:
 #   The covid tracking project (https://covidtracking.com/data) for historical rates (using JSON API for daily rates, see below)

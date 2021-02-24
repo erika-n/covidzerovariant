@@ -189,37 +189,54 @@ M. Reichmuth et al 2021 (~50% increase for new variant)"""
 
 # Make a sub-chart of historical and projection data
 def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid, R_variant, 
-    axis, header_text, n_days_data, n_days_projection, legend=False, current=True, pct_variant=1.0):
+    axis, header_text, n_days_data, n_days_projection, legend=False, current=True, pct_variant=1.0, overlap=False):
 
-    data=df_historical[:n_days_data]
+    historical_start_date = df_historical['date'][0]
+
+    projection_start_date = datetime.datetime(2021, 2, 15)
+
+    projection_overlap = int((historical_start_date - projection_start_date).days)
 
 
-    dates = pd.date_range(start=data['date'][len(data) -1 ],periods=(len(data) + n_days_projection), freq='D')
-    date = data['date'][0]
-    date = date.strftime("%#m-%#d")
+
+    if current and overlap:
+      data=df_historical[:n_days_data]
+    else:
+      data=df_historical[projection_overlap:n_days_data + projection_overlap]
+      projection_overlap = 0
+    
+
+    data = data.reset_index(drop=True)
+
+
+
+    # get dates for x axis
+    dates = pd.date_range(start=data['date'][len(data) -1 ],periods=(len(data) + n_days_projection - projection_overlap), freq='D')
+
 
     # PROJECTIONS #
 
-    generation = 3.6 # 3.6 days generation time (from Epiforecasts model https://epiforecasts.io/covid/methods)
+    # 3.6 days generation time (from Epiforecasts model https://epiforecasts.io/covid/methods)
+    generation = 3.6 
 
     # initial cases per day for original strain
-    init_covid_cases = data['average'][0]
 
-    y_cutoff = data['average'].max()
-
+    init_covid_cases = data['average'].iat[projection_overlap]
 
     # initial cases per day for B117 variant
 
     init_variant_cases = pct_variant*init_covid_cases
     init_covid_cases -= init_variant_cases
 
-    # overlap one day between projection and original data
-    projection_covid = projectCases(R_covid, init_covid_cases, n_days_projection + 1,generation=generation, pad=len(data) - 1)
-    projection_variant = projectCases(R_variant, init_variant_cases, n_days_projection + 1, generation=generation, pad=len(data) - 1 )
+
+
+    # get projections
+    projection_covid = projectCases(R_covid, init_covid_cases, n_days_projection  + 1,generation=generation, pad=len(data) - projection_overlap - 1)
+    projection_variant = projectCases(R_variant, init_variant_cases, n_days_projection  + 1, generation=generation, pad=len(data) - projection_overlap - 1)
     projection_total = projection_covid + projection_variant
 
-    
-    # cutoff greater than y_cutoff
+    # cutoff where greater than y_cutoff
+    y_cutoff = data['average'].max()
     x_cutoff = np.where(projection_total > y_cutoff)
 
     if len(x_cutoff) > 0 and x_cutoff[0].size > 0:
@@ -233,11 +250,8 @@ def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_c
     else:
       x_cutoff = -1
 
-
-
     # HISTORICAL DATA
-    average = padColumn(data, 'average', n_days_projection)
-
+    average = padColumn(data, 'average', n_days_projection - projection_overlap)
 
 
     # HISTORICAL: LINE PLOT #
@@ -269,7 +283,7 @@ def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_c
 
 
 # Make a two paneled chart for the given state and values
-def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=False, legend=False, fig_folder='fig'):
+def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=False, legend=False, fig_folder='fig', overlap=False):
 
   state_full_name = str(state_abbrevs[state])
   
@@ -277,8 +291,8 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
 
   if not os.path.exists(data_folder):
     os.makedirs(data_folder)
-  if not os.path.exists('figs'):
-    os.makedirs('figs')
+  if not os.path.exists(fig_folder):
+    os.makedirs(fig_folder)
 
   
   # DOWNLOAD HISTORICAL DATA #
@@ -291,7 +305,7 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
     df_historical = pd.DataFrame(historical)
     df_historical.to_csv(filepath_historical)
   else:
-    df_historical = pd.read_csv(filepath_historical)
+    df_historical = pd.read_csv(filepath_historical, index_col=0)
 
   # SET UP DATA
   # historical
@@ -299,7 +313,7 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
   df_historical = getDataForState(df_historical, state)
   # last date of historical data
   date = df_historical['date'][0]
-  date = date.strftime("%#m-%#d-%Y")
+  date_str = date.strftime("%#m-%#d-%Y")
 
   # r estimates
   df_r_estimates = pd.read_csv(data_folder + '/Covid-19 National and Subnational estimates for the United States of America.csv', index_col=0)
@@ -333,13 +347,13 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
 
   # CHART SETUP
   title_current = r'%s projections for new variants'% (state_full_name.upper())
-  title_covidzero = '#CovidZero policies in place'
+  title_covidzero = 'Projctions with #CovidZero policies in place'
 
   axes = setUpPlots(2)
-  makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid, R_variant, axes[0], title_current, n_days_data, n_days_projection, legend=legend, current=True, pct_variant=pct_variant)
-  makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid_lockdown, R_variant_lockdown, axes[1], title_covidzero, n_days_data, n_days_projection, legend=legend, current=False, pct_variant=pct_variant)
+  makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid, R_variant, axes[0], title_current, n_days_data, n_days_projection, legend=legend, current=True, pct_variant=pct_variant, overlap=overlap)
+  makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid_lockdown, R_variant_lockdown, axes[1], title_covidzero, n_days_data, n_days_projection, legend=legend, current=False, pct_variant=pct_variant, overlap=overlap)
 
-  filename = r'%s\projection_%s_%s.png'% (fig_folder, state, date)
+  filename = r'%s\projection_%s_%s.png'% (fig_folder, state, date_str)
   plt.savefig(filename, dpi=150, bbox_inches='tight', pad_inches=1)
   
   print('Saved ', filename)
@@ -349,21 +363,26 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
   
 if __name__ == '__main__':
   # SETTINGS #
-  n_days_projection = 60
+  n_days_projection = 90
   n_days_data = 60
   data_folder = 'data'
-  fig_folder = 'figs'
+  overlap = False
   update_data = False
   legend = True
   state = 'ALL'
+
+  if overlap:
+    fig_folder='figs_overlap'
+  else:
+    fig_folder = 'figs'
 
   df_b117 = pd.read_csv(data_folder + '/Helix_B117.csv')
   states = df_b117['state']
   if state == 'ALL':
     for state in states:
-      makeChart(state, n_days_projection, n_days_data, data_folder, update_data, legend=legend, fig_folder=fig_folder)
+      makeChart(state, n_days_projection, n_days_data, data_folder, update_data, legend=legend, fig_folder=fig_folder, overlap=overlap)
   else:
-    makeChart(state, n_days_projection, n_days_data, data_folder, update_data, legend=legend, fig_folder=fig_folder)
+    makeChart(state, n_days_projection, n_days_data, data_folder, update_data, legend=legend, fig_folder=fig_folder, overlap=overlap)
 
 # Data Sources:
 #   Historical rates: The covid tracking project (https://covidtracking.com/data) (using JSON API for daily rates)

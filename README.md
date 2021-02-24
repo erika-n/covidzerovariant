@@ -23,4 +23,4 @@ python new_variant_estimate.py
 - B117 variant percent: Helix: https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard 
 - Growth rate for new variant (~50% higher transmission): Martina Reichmuth et al 2021, "Transmission of SARS-CoV-2 variants in Switzerland", https://ispmbern.github.io/covid-19/variants/ 
 
-
+Do not use data CSVs directly for other projects. Please download fresh data from these sources.

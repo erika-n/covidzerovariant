@@ -1,4 +1,3 @@
-B117 variant charts
 # Covid Zero charts for B117 variant
 
 See https://www.endcoronavirus.org/ for more information on #covidzero

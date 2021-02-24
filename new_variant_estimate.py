@@ -94,14 +94,15 @@ state_abbrevs = {
 # pad: prepend blanks
 # generation: number of generation days that R is based on
 def projectCases(R, init_cases, n_days=30, pad=0, generation=4):
-    generation_time = 3.6 # generation time from https://epiforecasts.io/covid/methods.html
-    days = np.arange(n_days)
-    projection = init_cases*R**(days/generation_time) 
-    if pad > 0:
-      pad = np.full(pad, np.nan)
-      projection = np.concatenate(( pad, projection))
 
-    return projection
+  generation_time = 3.6 # generation time from https://epiforecasts.io/covid/methods.html
+  days = np.arange(n_days)
+  projection = init_cases*R**(days/generation_time) 
+  if pad > 0:
+    pad = np.full(pad, np.nan)
+    projection = np.concatenate(( pad, projection))
+
+  return projection
 
 
 
@@ -268,7 +269,7 @@ def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_c
 
 
 # Make a two paneled chart for the given state and values
-def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=False, legend=False):
+def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=False, legend=False, fig_folder='fig'):
 
   state_full_name = str(state_abbrevs[state])
   
@@ -338,7 +339,7 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
   makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid, R_variant, axes[0], title_current, n_days_data, n_days_projection, legend=legend, current=True, pct_variant=pct_variant)
   makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid_lockdown, R_variant_lockdown, axes[1], title_covidzero, n_days_data, n_days_projection, legend=legend, current=False, pct_variant=pct_variant)
 
-  filename = r'figs\projection_%s_%s.png'% (state, date)
+  filename = r'%s\projection_%s_%s.png'% (fig_folder, state, date)
   plt.savefig(filename, dpi=150, bbox_inches='tight', pad_inches=1)
   
   print('Saved ', filename)
@@ -351,6 +352,7 @@ if __name__ == '__main__':
   n_days_projection = 60
   n_days_data = 60
   data_folder = 'data'
+  fig_folder = 'figs'
   update_data = False
   legend = True
   state = 'ALL'
@@ -359,13 +361,14 @@ if __name__ == '__main__':
   states = df_b117['state']
   if state == 'ALL':
     for state in states:
-      makeChart(state, n_days_projection, n_days_data, data_folder, update_data, legend=legend)
+      makeChart(state, n_days_projection, n_days_data, data_folder, update_data, legend=legend, fig_folder=fig_folder)
   else:
-    makeChart(state, n_days_projection, n_days_data, data_folder, update_data, legend=legend)
+    makeChart(state, n_days_projection, n_days_data, data_folder, update_data, legend=legend, fig_folder=fig_folder)
 
 # Data Sources:
-#   The covid tracking project (https://covidtracking.com/data) for historical rates (using JSON API for daily rates, see below)
-# 	Epiforecasts: https://epiforecasts.io/covid/posts/national/united-states/ for R for projection for old variant
-#   Helix: https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard for new variant percent
-#   Growth rate for new variant: Martina Reichmuth et al 2021, "Transmission of SARS-CoV-2 variants in Switzerland", https://ispmbern.github.io/covid-19/variants/ (~50% higher transmission)
+#   Historical rates: The covid tracking project (https://covidtracking.com/data) (using JSON API for daily rates)
+# 	R0 projectio based on historical rates: Epiforecasts: https://epiforecasts.io/covid/posts/national/united-states/ 
+#     Paper for epiforecasts method: "Estimating the time-varying reproduction number of SARS-CoV-2 using national and subnational case counts", Abbot et. al, https://wellcomeopenresearch.org/articles/5-112/v1  
+#   B117 variant percent: Helix: https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard 
+#   Growth rate for new variant (~50% higher transmission): Martina Reichmuth et al 2021, "Transmission of SARS-CoV-2 variants in Switzerland", https://ispmbern.github.io/covid-19/variants/
 

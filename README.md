@@ -16,9 +16,10 @@ R Values:
   #covidzero R values are always 0.6 and 0.9, calculated from status where new variant is on a downward trajectory.
 
 Data Sources:
-  The covid tracking project (https://covidtracking.com/data) for historical rates (using JSON API for daily rates)
-	Epiforecasts: https://epiforecasts.io/covid/posts/national/united-states/ for R for projection for old variant
-  Helix: https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard for new variant percent
-  Growth rate for new variant: Martina Reichmuth et al 2021, "Transmission of SARS-CoV-2 variants in Switzerland", https://ispmbern.github.io/covid-19/variants/ (~50% higher transmission)
+  Historical rates: The covid tracking project (https://covidtracking.com/data) (using JSON API for daily rates)
+	R0 projectio based on historical rates: Epiforecasts: https://epiforecasts.io/covid/posts/national/united-states/ 
+    Paper for epiforecasts method: "Estimating the time-varying reproduction number of SARS-CoV-2 using national and subnational case counts", Abbot et. al, https://wellcomeopenresearch.org/articles/5-112/v1  
+  B117 variant percent: Helix: https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard 
+  Growth rate for new variant (~50% higher transmission): Martina Reichmuth et al 2021, "Transmission of SARS-CoV-2 variants in Switzerland", https://ispmbern.github.io/covid-19/variants/ 
 
 

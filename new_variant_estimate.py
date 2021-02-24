@@ -347,7 +347,7 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
 
   # CHART SETUP
   title_current = r'%s projections for new variants'% (state_full_name.upper())
-  title_covidzero = 'Projctions with #CovidZero policies in place'
+  title_covidzero = 'Projections with #CovidZero policies in place'
 
   axes = setUpPlots(2)
   makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid, R_variant, axes[0], title_current, n_days_data, n_days_projection, legend=legend, current=True, pct_variant=pct_variant, overlap=overlap)
@@ -366,7 +366,7 @@ if __name__ == '__main__':
   n_days_projection = 90
   n_days_data = 60
   data_folder = 'data'
-  overlap = False
+  overlap = True
   update_data = False
   legend = True
   state = 'ALL'

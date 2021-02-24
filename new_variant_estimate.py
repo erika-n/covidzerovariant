@@ -264,7 +264,7 @@ def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_c
     setUpAxis(axis, axis_cutoff, current)
     
     if legend:
-      axis.legend(fontsize=14, loc='best')        
+      axis.legend(fontsize=16, loc='best')        
 
 
 

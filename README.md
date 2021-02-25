@@ -1,4 +1,4 @@
-# Covid Zero projection charts for B117 variant
+# B117 projection charts for #covidzero 
 
 Creates charts of alternative scenarios for development of covid given the new variant B117. 
 

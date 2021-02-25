@@ -19,7 +19,7 @@ python new_variant_estimate.py
 
   Old variants vs. new variant R assumes that new variant has 50% higher R than old variants
   
-  Variant R value of 0.9 gives an overall downward trajectory and is the goal for covid elimination. 0.6 old variant R follows from this: 0.9 is 50% greater than 0.6.
+  Variant R value of 0.9 gives an overall downward trajectory and is the goal for covid elimination. 0.6 old variant R follows from this.
 
 ## Data Sources:
 - Historical rates: The covid tracking project (https://covidtracking.com/data) (using JSON API for daily rates)

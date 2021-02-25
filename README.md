@@ -41,4 +41,4 @@ Data format:
   - collection_date: collection date of SGTF pct (B117 pct generally earlier)
 
 
-This project is not inteded as a data source, please refer to the above sources.
+This project is not intended as a data source, please refer to the above sources.

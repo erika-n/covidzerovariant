@@ -2,7 +2,7 @@
 
 *R0 projection* from Epiforecasts, https://epiforecasts.io/covid/posts/national/united-states/, downloaded on 2/14/2021
 
-*SGTF/B117 data* from https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard, collected by EN from dashboard 2/23/2021
+*SGTF/B117 data* from https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard, collected by Erika Nesse from dashboard 2/23/2021
 
   SGTF Data
 

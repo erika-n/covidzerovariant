@@ -4,9 +4,6 @@ Creates charts of alternative scenarios for development of covid given the new v
 
 See https://www.endcoronavirus.org/ for more information on #covidzero
 
-
-Current charts are for Feb. 14 2021 
-
 Current states supported are CA, AZ, TX, GA, NC, LA, MI, IN, PA, MA, FL.
 
 Other states have insufficient B117 data from Helix as of 2/23/2021

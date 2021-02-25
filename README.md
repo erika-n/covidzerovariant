@@ -31,16 +31,13 @@ python new_variant_estimate.py
 - Growth rate for new variant (~50% higher transmission): Martina Reichmuth et al 2021, "Transmission of SARS-CoV-2 variants in Switzerland", https://ispmbern.github.io/covid-19/variants/ 
 
 
-*SGTF/B117 data* from https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard, collected by Erika Nesse from dashboard 2/23/2021
+- SGTF/B117 data* from https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard, collected by Erika Nesse from dashboard 2/23/2021
 
-Data format:
-  - state: state ID	
-
-  - pctSGTF: percent of all tests SGTF	
-  
-  - pctSGTF_B117: percent of SGTF tests B117
-  
-  - collection_date: collection date of SGTF pct (B117 pct generally earlier)
+  - Data format:
+    -  state: state ID	
+    - pctSGTF: percent of all tests SGTF	
+    - pctSGTF_B117: percent of SGTF tests B117
+    - collection_date: collection date of SGTF pct (B117 pct generally earlier)
 
 
 

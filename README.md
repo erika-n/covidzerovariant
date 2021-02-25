@@ -33,11 +33,4 @@ python new_variant_estimate.py
 
 - SGTF/B117 data* from https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard, collected by Erika Nesse from dashboard 2/23/2021
 
-  - Data format:
-    -  state: state ID	
-    - pctSGTF: percent of all tests SGTF	
-    - pctSGTF_B117: percent of SGTF tests B117
-    - collection_date: collection date of SGTF pct (B117 pct generally earlier)
-
-
 

@@ -21,8 +21,11 @@ from labellines import labelLines
 from scipy import ndimage
 
 
+# Estimate projections for old, B117, and 
+# combined variants per U.S. state
 
-# Estimate projections for old, new, and combined variants per U.S. state
+# Copyright 2021 Erika Nesse and NECSI.org with MIT license 
+# (see LICENSE)
 
 
 state_abbrevs = {

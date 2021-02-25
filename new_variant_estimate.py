@@ -188,7 +188,7 @@ M. Reichmuth et al 2021 (~50% increase for new variant)"""
 
 
 # Make a sub-chart of historical and projection data
-def makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid, R_variant, 
+def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant, 
     axis, header_text, n_days_data, n_days_projection, legend=False, current=True, pct_variant=1.0, overlap=False):
 
     historical_start_date = df_historical['date'][0]
@@ -320,11 +320,6 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
   df_r_estimates.rename(columns=lambda x: x.strip(), inplace=True)
   df_r_estimates['R'] = df_r_estimates['Effective reproduction no.'].str.split(" ").str.get(0)
 
-  # emerging variants
-  df_emerging_variants = pd.read_csv(data_folder + '/Emerging Variant Cases in the United States.csv', index_col=0)
-  df_emerging_variants = df_emerging_variants[df_emerging_variants['filter'] == 'Variant B.1.1.7']
-  df_emerging_variants.rename(columns=lambda x: x.strip(), inplace=True)
-
   # data on B117 rates
   df_b117 = pd.read_csv(data_folder + '/Helix_B117.csv', index_col=0)
 
@@ -350,8 +345,8 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
   title_covidzero = 'Projections with #CovidZero policies in place'
 
   axes = setUpPlots(2)
-  makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid, R_variant, axes[0], title_current, n_days_data, n_days_projection, legend=legend, current=True, pct_variant=pct_variant, overlap=overlap)
-  makeSubChart(df_historical, df_r_estimates, df_emerging_variants, state, R_covid_lockdown, R_variant_lockdown, axes[1], title_covidzero, n_days_data, n_days_projection, legend=legend, current=False, pct_variant=pct_variant, overlap=overlap)
+  makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant, axes[0], title_current, n_days_data, n_days_projection, legend=legend, current=True, pct_variant=pct_variant, overlap=overlap)
+  makeSubChart(df_historical, df_r_estimates, state, R_covid_lockdown, R_variant_lockdown, axes[1], title_covidzero, n_days_data, n_days_projection, legend=legend, current=False, pct_variant=pct_variant, overlap=overlap)
 
   filename = r'%s\projection_%s_%s.png'% (fig_folder, state, date_str)
   plt.savefig(filename, dpi=150, bbox_inches='tight', pad_inches=1)

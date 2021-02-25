@@ -22,7 +22,7 @@ python new_variant_estimate.py
   Variant R value of 0.9 gives an overall downward trajectory and is the goal for covid elimination. 0.6 old variant R follows from this.
 
 ## Data Sources:
-*This project is not intended as a data source*. Please refer to these sources:
+**This project is not intended as a data source**. Please refer to these sources:
 
 - Historical rates: The covid tracking project (https://covidtracking.com/data) (using JSON API for daily rates)
 - R0 projection based on historical rates: Epiforecasts: https://epiforecasts.io/covid/posts/national/united-states/ 

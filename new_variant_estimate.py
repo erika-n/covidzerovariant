@@ -193,7 +193,10 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
 
     historical_start_date = df_historical['date'][0]
 
-    projection_start_date = datetime.datetime(2021, 2, 15)
+    if(current):
+      projection_start_date = datetime.datetime(2021, 2, 15)
+    else:
+      projection_start_date = datetime.datetime(2021, 2, 23)
 
     projection_overlap = int((historical_start_date - projection_start_date).days)
 

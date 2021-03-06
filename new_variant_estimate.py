@@ -124,9 +124,9 @@ def getDataForState(data, state):
 # Pad out a column to have the correct number of x axis values
 def padColumn(data, column, n_pad):
   pad = np.full(n_pad, np.nan) # ignore the pad values in the chart
-  average = np.concatenate((pad, data[column]))[::-1]
+  padded = np.concatenate((pad, data[column]))[::-1]
 
-  return average
+  return padded
 
 # Set up each matplotlib axis
 def setUpAxis(axis, y_cutoff, labels=False):
@@ -192,7 +192,7 @@ M. Reichmuth et al 2021 (~50% increase for new variant)"""
 
 # Make a sub-chart of historical and projection data
 def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant, 
-    axis, header_text, n_days_data, n_days_projection, legend=False, current=True, pct_variant=1.0, overlap=False):
+    axis, header_text, n_days_data, n_days_projection, legend=False, current=True, pct_variant=1.0, pct_variant_update=0.0, overlap=False):
 
     historical_start_date = df_historical['date'][0]
 
@@ -241,6 +241,21 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
     projection_variant = projectCases(R_variant, init_variant_cases, n_days_projection  + 1, generation=generation, pad=len(data) - projection_overlap - 1)
     projection_total = projection_covid + projection_variant
 
+
+    # pin for updated variant percent
+    if pct_variant_update > 0:
+      variant_update = np.full(len(dates), np.nan) 
+      variant_update_date = datetime.datetime(2021, 3, 3)
+      variant_date_offset = variant_update_date - dates[0]
+      variant_days_offset = int(variant_date_offset.total_seconds()/(60*60*24))
+
+
+
+      variant_update[variant_days_offset] = data['average'].iat[-variant_days_offset]*pct_variant_update
+
+
+
+
     # cutoff where greater than y_cutoff
     y_cutoff = data['average'].max()
     x_cutoff = np.where(projection_total > y_cutoff)
@@ -272,7 +287,9 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
     axis.plot(dates, projection_variant, '--', color='red', lw=2, label=new_var_str)
     axis.plot(dates, projection_total, color='blue', lw=1, label="Total")
 
-
+    # # UPDATED B117 PCT PLOT #
+    if pct_variant_update > 0:
+      axis.scatter(dates, variant_update, color='green', label='% B117 on 3/3')
 
 
     # SUBPLOT TITLE#
@@ -291,6 +308,7 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
 # Make a two paneled chart for the given state and values
 def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=False, legend=False, fig_folder='fig', overlap=False):
 
+  print('Making chart for state: ', state)
   state_full_name = str(state_abbrevs[state])
   
 
@@ -318,6 +336,7 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
 
   # data on B117 rates
   df_b117 = pd.read_csv(data_folder + '/Helix_B117.csv', index_col=0)
+  df_b117_update = pd.read_csv(data_folder + '/Helix_B117_update.csv', index_col=0)
 
   # Estimated R0
   R0 = float(df_r_estimates['R'][state_full_name])
@@ -326,6 +345,11 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
   pct_SGTF = df_b117['pct_SGTF'][state]/100.0 
   pct_SGTF_B117 = df_b117['pct_SGTF_B117'][state]/100.0
   pct_variant = pct_SGTF*pct_SGTF_B117
+
+  pct_SGTF_update = df_b117_update['pct_SGTF'][state]/100.0 
+  pct_SGTF_B117_update = df_b117_update['pct_SGTF_B117'][state]/100.0
+  pct_variant_update = pct_SGTF_update*pct_SGTF_B117_update
+
 
   # calculate R from estimated R0 for all cases
   R_covid = R0/(1.5*pct_variant + (1-pct_variant))
@@ -341,8 +365,8 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
   title_covidzero = 'Projections with #CovidZero policies in place'
 
   axes = setUpPlots(2)
-  makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant, axes[0], title_current, n_days_data, n_days_projection, legend=legend, current=True, pct_variant=pct_variant, overlap=overlap)
-  makeSubChart(df_historical, df_r_estimates, state, R_covid_lockdown, R_variant_lockdown, axes[1], title_covidzero, n_days_data, n_days_projection, legend=legend, current=False, pct_variant=pct_variant, overlap=overlap)
+  makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant, axes[0], title_current, n_days_data, n_days_projection, legend=legend, current=True, pct_variant=pct_variant, pct_variant_update=pct_variant_update, overlap=overlap)
+  makeSubChart(df_historical, df_r_estimates, state, R_covid_lockdown, R_variant_lockdown, axes[1], title_covidzero, n_days_data, n_days_projection, legend=legend, current=False, pct_variant=pct_variant, pct_variant_update=0.0, overlap=overlap)
 
   filename = r'%s\projection_%s_%s.png'% (fig_folder, state, date_str)
   plt.savefig(filename, dpi=150, bbox_inches='tight', pad_inches=1)

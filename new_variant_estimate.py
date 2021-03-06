@@ -300,18 +300,8 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
   if not os.path.exists(fig_folder):
     os.makedirs(fig_folder)
 
-  
-  # DOWNLOAD HISTORICAL DATA #
-  # automatic update of covidtracking.com data
-  filepath_historical = data_folder + '/covid_daily.csv'  
-  if update_data or not os.path.exists(filepath_historical):
-    print('downloading daily data')
-    with urllib.request.urlopen("https://covidtracking.com/api/v1/states/daily.json") as url:
-        historical = json.loads(url.read().decode())
-    df_historical = pd.DataFrame(historical)
-    df_historical.to_csv(filepath_historical)
-  else:
-    df_historical = pd.read_csv(filepath_historical, index_col=0)
+
+  df_historical = pd.read_csv(filepath_historical, index_col=0)
 
   # SET UP DATA
   # historical
@@ -377,8 +367,23 @@ if __name__ == '__main__':
   else:
     fig_folder = 'figs'
 
+
+  
+  # DOWNLOAD HISTORICAL DATA #
+  # automatic update of covidtracking.com data
+  filepath_historical = data_folder + '/covid_daily.csv'  
+  if update_data or not os.path.exists(filepath_historical):
+    print('downloading daily data')
+    with urllib.request.urlopen("https://covidtracking.com/api/v1/states/daily.json") as url:
+        historical = json.loads(url.read().decode())
+    df_historical = pd.DataFrame(historical)
+    df_historical.to_csv(filepath_historical)    
+
+  # get states
   df_b117 = pd.read_csv(data_folder + '/Helix_B117.csv')
   states = df_b117['state']
+
+  # make charts
   if state == 'ALL':
     for state in states:
       makeChart(state, n_days_projection, n_days_data, data_folder, update_data, legend=legend, fig_folder=fig_folder, overlap=overlap)

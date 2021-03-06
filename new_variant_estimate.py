@@ -289,7 +289,7 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
 
     # # UPDATED B117 PCT PLOT #
     if pct_variant_update > 0:
-      axis.scatter(dates, variant_update, color='green', label='% B117 on 3/3')
+      axis.scatter(dates, variant_update, color='green', label='Est. B117 on 3/3')
 
 
     # SUBPLOT TITLE#

@@ -207,8 +207,9 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
     if(current):
       projection_start_date = datetime.datetime(2021, 2, 15)
     else:
-      projection_start_date = datetime.datetime(2021, 2, 23)
+      projection_start_date = datetime.datetime(2021, 3, 5)
 
+    projection_start_date_str = projection_start_date.strftime("%#m/%#d")
     projection_overlap = int((historical_start_date - projection_start_date).days)
 
 
@@ -302,9 +303,9 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
 
     # VERTICAL LINE FOR PROJECTION START #
 
-    if current:
-      axis.vlines(dates[n_days_data - projection_overlap], 0, 0.8*y_cutoff, color='grey')
-      axis.text(dates[n_days_data - projection_overlap + 2], 0.6*y_cutoff, "Projection\nstart", fontsize=16, color='grey')
+    #if current:
+    axis.vlines(dates[n_days_data - projection_overlap], 0, 0.8*y_cutoff, color='grey')
+    axis.text(dates[n_days_data - projection_overlap + 3], 0.6*y_cutoff, "Projection\nstart (" + projection_start_date_str + ")", fontsize=16, color='grey')
 
     # SUBPLOT TITLE#
     axis.set_title(header_text,fontsize=18, y=1.03, alpha=0.9, fontweight='bold')

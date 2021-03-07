@@ -11,6 +11,7 @@ from matplotlib.dates import DateFormatter
 import matplotlib.ticker as mticker
 import seaborn as sns
 import matplotlib.font_manager
+import matplotlib.dates as mdates
 import datetime
 import urllib.request, json
 
@@ -140,12 +141,19 @@ def setUpAxis(axis, y_cutoff, labels=False):
   axis.xaxis.set_major_formatter(date_form)    
 
 
-  # SETTING TICK PARAMATERS #
+  # SETTING Y TICK PARAMETERS #
   axis.tick_params(axis='y',labelcolor= 'grey',labelsize = 18,width=0, length=8)
   axis.tick_params(axis='x',labelcolor= 'grey',labelsize = 18,labelrotation=0, width=1.5, length=8)
   ticks_loc = axis.get_yticks().tolist()
   axis.yaxis.set_major_locator(mticker.FixedLocator(ticks_loc))
   axis.set_yticklabels(['{:,}'.format(int(x)) for x in ticks_loc])
+
+  # SETTNG DATE TICKS #
+  months = mdates.MonthLocator()  # every month
+  axis.xaxis.set_major_locator(months)
+  months_fmt = mdates.DateFormatter('%#m/%#d')
+  axis.xaxis.set_major_formatter(months_fmt)
+
 
   # SET Y LIMIT #
   axis.set_ylim((0, int(y_cutoff)))
@@ -289,7 +297,7 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
 
     # # UPDATED B117 PCT PLOT #
     if pct_variant_update > 0:
-      axis.scatter(dates, variant_update, color='green', label='Est. B117 on 3/3')
+      axis.scatter(dates, variant_update, color='green', label='B117 on 3/3')
 
 
     # SUBPLOT TITLE#
@@ -384,7 +392,7 @@ if __name__ == '__main__':
   overlap = True
   update_data = False
   legend = True
-  state = 'ALL'
+  state = 'ALL' # set to ALL to run all available states
 
   if overlap:
     fig_folder='figs_overlap'

@@ -249,7 +249,6 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
     projection_variant = projectCases(R_variant, init_variant_cases, n_days_projection  + 1, generation=generation, pad=len(data) - projection_overlap - 1)
     projection_total = projection_covid + projection_variant
 
-
     # pin for updated variant percent
     if pct_variant_update > 0:
       variant_update = np.full(len(dates), np.nan) 
@@ -258,9 +257,11 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
       variant_days_offset = int(variant_date_offset.total_seconds()/(60*60*24))
 
 
-
+      # updated projection point
       variant_update[variant_days_offset] = data['average'].iat[-variant_days_offset]*pct_variant_update
 
+      # initial projection point
+      variant_update[n_days_data - projection_overlap] = projection_variant[n_days_data - projection_overlap]
 
 
 
@@ -297,13 +298,18 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
 
     # # UPDATED B117 PCT PLOT #
     if pct_variant_update > 0:
-      axis.scatter(dates, variant_update, color='green', label='B117 on 3/3')
+      axis.scatter(dates, variant_update, color='green', label='B117 data points')
 
+    # VERTICAL LINE FOR PROJECTION START #
+
+    if current:
+      axis.vlines(dates[n_days_data - projection_overlap], 0, 0.8*y_cutoff, color='grey')
+      axis.text(dates[n_days_data - projection_overlap + 2], 0.6*y_cutoff, "Projection\nstart", fontsize=14, color='grey')
 
     # SUBPLOT TITLE#
     axis.set_title(header_text,fontsize=18, y=1.03, alpha=0.9, fontweight='bold')
 
-    axis_cutoff = 1.55*y_cutoff
+    axis_cutoff = 1.65*y_cutoff
     
     axis_cutoff = int(1500*axis_cutoff)/1500 -1
     setUpAxis(axis, axis_cutoff, current)

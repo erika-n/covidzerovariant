@@ -304,7 +304,7 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
 
     if current:
       axis.vlines(dates[n_days_data - projection_overlap], 0, 0.8*y_cutoff, color='grey')
-      axis.text(dates[n_days_data - projection_overlap + 2], 0.6*y_cutoff, "Projection\nstart", fontsize=14, color='grey')
+      axis.text(dates[n_days_data - projection_overlap + 2], 0.6*y_cutoff, "Projection\nstart", fontsize=16, color='grey')
 
     # SUBPLOT TITLE#
     axis.set_title(header_text,fontsize=18, y=1.03, alpha=0.9, fontweight='bold')

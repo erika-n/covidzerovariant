@@ -344,7 +344,7 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
   date_str = date.strftime("%#m-%#d-%Y")
 
   # r estimates
-  df_r_estimates = pd.read_csv(data_folder + '/Covid-19 National and Subnational estimates for the United States of America_03_09_2021.csv', index_col=0)
+  df_r_estimates = pd.read_csv(data_folder + '/R_estimates.csv', index_col=0)
   df_r_estimates.rename(columns=lambda x: x.strip(), inplace=True)
   df_r_estimates['R'] = df_r_estimates['Effective reproduction no.'].str.split(" ").str.get(0)
 

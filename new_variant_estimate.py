@@ -97,9 +97,8 @@ state_abbrevs = {
 # n_days: number of days to project
 # pad: prepend blanks
 # generation: number of generation days that R is based on
-def projectCases(R, init_cases, n_days=30, pad=0, generation=4):
+def projectCases(R, init_cases, n_days=30, pad=0, generation_time=3.6):
 
-  generation_time = 3.6 # generation time from https://epiforecasts.io/covid/methods.html
   days = np.arange(n_days)
   projection = init_cases*R**(days/generation_time) 
   if pad > 0:
@@ -246,8 +245,8 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
 
 
     # get projections
-    projection_covid = projectCases(R_covid, init_covid_cases, n_days_projection  + 1,generation=generation, pad=len(data) - projection_overlap - 1)
-    projection_variant = projectCases(R_variant, init_variant_cases, n_days_projection  + 1, generation=generation, pad=len(data) - projection_overlap - 1)
+    projection_covid = projectCases(R_covid, init_covid_cases, n_days_projection  + 1,generation_time=generation, pad=len(data) - projection_overlap - 1)
+    projection_variant = projectCases(R_variant, init_variant_cases, n_days_projection  + 1, generation_time=generation, pad=len(data) - projection_overlap - 1)
     projection_total = projection_covid + projection_variant
 
     # pin for updated variant percent
@@ -345,7 +344,7 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
   date_str = date.strftime("%#m-%#d-%Y")
 
   # r estimates
-  df_r_estimates = pd.read_csv(data_folder + '/Covid-19 National and Subnational estimates for the United States of America.csv', index_col=0)
+  df_r_estimates = pd.read_csv(data_folder + '/Covid-19 National and Subnational estimates for the United States of America_03_09_2021.csv', index_col=0)
   df_r_estimates.rename(columns=lambda x: x.strip(), inplace=True)
   df_r_estimates['R'] = df_r_estimates['Effective reproduction no.'].str.split(" ").str.get(0)
 
@@ -431,7 +430,7 @@ if __name__ == '__main__':
 
 # Data Sources:
 #   Historical rates: The covid tracking project (https://covidtracking.com/data) (using JSON API for daily rates)
-# 	R0 projectio based on historical rates: Epiforecasts: https://epiforecasts.io/covid/posts/national/united-states/ 
+# 	R0 projection based on historical rates: Epiforecasts: https://epiforecasts.io/covid/posts/national/united-states/ 
 #     Paper for epiforecasts method: "Estimating the time-varying reproduction number of SARS-CoV-2 using national and subnational case counts", Abbot et. al, https://wellcomeopenresearch.org/articles/5-112/v1  
 #   B117 variant percent: Helix: https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard 
 #   Growth rate for new variant (~50% higher transmission): Martina Reichmuth et al 2021, "Transmission of SARS-CoV-2 variants in Switzerland", https://ispmbern.github.io/covid-19/variants/

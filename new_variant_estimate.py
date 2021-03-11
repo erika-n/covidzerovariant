@@ -231,8 +231,8 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
     # PROJECTIONS #
 
     # 3.6 days generation time (from Epiforecasts model https://epiforecasts.io/covid/methods)
-    generation = 3.6 
-
+    generation_old_variants = 3.6 
+    generation_B117 = 6.5
     # initial cases per day for original strain
 
     init_covid_cases = data['average'].iat[projection_overlap]
@@ -245,8 +245,8 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
 
 
     # get projections
-    projection_covid = projectCases(R_covid, init_covid_cases, n_days_projection  + 1,generation_time=generation, pad=len(data) - projection_overlap - 1)
-    projection_variant = projectCases(R_variant, init_variant_cases, n_days_projection  + 1, generation_time=generation, pad=len(data) - projection_overlap - 1)
+    projection_covid = projectCases(R_covid, init_covid_cases, n_days_projection  + 1,generation_time=generation_old_variants, pad=len(data) - projection_overlap - 1)
+    projection_variant = projectCases(R_variant, init_variant_cases, n_days_projection  + 1, generation_time=generation_B117, pad=len(data) - projection_overlap - 1)
     projection_total = projection_covid + projection_variant
 
     # pin for updated variant percent

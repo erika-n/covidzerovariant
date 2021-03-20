@@ -19,7 +19,7 @@ python new_variant_estimate.py
 ## Data Sources:
 **This project is not intended as a data source**. Please refer to these sources:
 
-- Historical rates: The covid tracking project (https://covidtracking.com/data) (using JSON API for daily rates)
+- Historical rates: New York Times (https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv)
 - R0 projection based on historical rates: Epiforecasts: https://epiforecasts.io/covid/posts/national/united-states/ 
   - Paper for epiforecasts method: "Estimating the time-varying reproduction number of SARS-CoV-2 using national and subnational case counts", Abbot et. al, https://wellcomeopenresearch.org/articles/5-112/v1  
 - B117 variant percent: Helix: https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard 

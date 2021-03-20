@@ -115,8 +115,8 @@ def getDataForState(data, state):
   state_data = data[data['state']==state].drop('state', axis=1)
   state_data.index = np.arange(len(state_data))
   window = 7
-
-  state_data['average'] = state_data['positiveIncrease'].iloc[::-1].rolling(window=window, min_periods=1, center=False).mean().iloc[::-1]
+  state_data['case_diff'] = state_data['cases'].iloc[::-1].diff().iloc[::-1]
+  state_data['average'] = state_data['case_diff'].iloc[::-1].rolling(window=window, min_periods=1, center=False).mean().iloc[::-1]
 
   state_data.fillna(0, inplace=True)
   return state_data
@@ -199,14 +199,14 @@ M. Reichmuth et al 2021 (~50% increase for new variant)"""
 
 # Make a sub-chart of historical and projection data
 def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant, 
-    axis, header_text, n_days_data, n_days_projection, legend=False, current=True, pct_variant=1.0, pct_variant_update=0.0, overlap=False):
+    axis, header_text, n_days_data, n_days_projection, legend=False, current=True, pct_variant=1.0, pct_variant_update=0.0, overlap=False, generation_time=4):
 
     historical_start_date = df_historical['date'][0]
 
     if(current):
       projection_start_date = datetime.datetime(2021, 2, 15)
     else:
-      projection_start_date = datetime.datetime(2021, 3, 5)
+      projection_start_date = datetime.datetime(2021, 3, 18)
 
     projection_start_date_str = projection_start_date.strftime("%#m/%#d")
     projection_overlap = int((historical_start_date - projection_start_date).days)
@@ -231,8 +231,7 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
     # PROJECTIONS #
 
     # 3.6 days generation time (from Epiforecasts model https://epiforecasts.io/covid/methods)
-    generation_old_variants = 3.6 
-    generation_B117 = 6.5
+
     # initial cases per day for original strain
 
     init_covid_cases = data['average'].iat[projection_overlap]
@@ -245,14 +244,14 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
 
 
     # get projections
-    projection_covid = projectCases(R_covid, init_covid_cases, n_days_projection  + 1,generation_time=generation_old_variants, pad=len(data) - projection_overlap - 1)
-    projection_variant = projectCases(R_variant, init_variant_cases, n_days_projection  + 1, generation_time=generation_B117, pad=len(data) - projection_overlap - 1)
+    projection_covid = projectCases(R_covid, init_covid_cases, n_days_projection  + 1,generation_time=generation_time, pad=len(data) - projection_overlap - 1)
+    projection_variant = projectCases(R_variant, init_variant_cases, n_days_projection  + 1, generation_time=generation_time, pad=len(data) - projection_overlap - 1)
     projection_total = projection_covid + projection_variant
 
     # pin for updated variant percent
     if pct_variant_update > 0:
       variant_update = np.full(len(dates), np.nan) 
-      variant_update_date = datetime.datetime(2021, 3, 3)
+      variant_update_date = datetime.datetime(2021, 3, 16)
       variant_date_offset = variant_update_date - dates[0]
       variant_days_offset = int(variant_date_offset.total_seconds()/(60*60*24))
 
@@ -337,8 +336,8 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
 
   # SET UP DATA
   # historical
-  df_historical['date'] = pd.to_datetime(df_historical.date, format='%Y%m%d')
-  df_historical = getDataForState(df_historical, state)
+  df_historical['date'] = pd.to_datetime(df_historical.date, format='%Y-%m-%d')
+  df_historical = getDataForState(df_historical, state_full_name)
   # last date of historical data
   date = df_historical['date'][0]
   date_str = date.strftime("%#m-%#d-%Y")
@@ -368,6 +367,10 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
   # calculate R from estimated R0 for all cases
   R_covid = R0/(1.5*pct_variant + (1-pct_variant))
   R_variant = 1.5*R_covid # 50% increas in reproduction rate
+  generation_epiforecasts = 3.6
+  generation_new = 5.2 
+  R_covid = np.exp(np.log(R_covid)*generation_new/generation_epiforecasts) # convert to same generation time as V117
+  R_variant = 1.5*R_covid
 
   # lockdown R calculated from requirement to reduce total cases (variant R = 0.9)
   R_covid_lockdown = 0.6 
@@ -379,8 +382,8 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
   title_covidzero = 'Projections with #CovidZero policies in place'
 
   axes = setUpPlots(2)
-  makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant, axes[0], title_current, n_days_data, n_days_projection, legend=legend, current=True, pct_variant=pct_variant, pct_variant_update=pct_variant_update, overlap=overlap)
-  makeSubChart(df_historical, df_r_estimates, state, R_covid_lockdown, R_variant_lockdown, axes[1], title_covidzero, n_days_data, n_days_projection, legend=legend, current=False, pct_variant=pct_variant, pct_variant_update=0.0, overlap=overlap)
+  makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant, axes[0], title_current, n_days_data, n_days_projection, legend=legend, current=True, pct_variant=pct_variant, pct_variant_update=pct_variant_update, overlap=overlap, generation_time=generation_new)
+  makeSubChart(df_historical, df_r_estimates, state, R_covid_lockdown, R_variant_lockdown, axes[1], title_covidzero, n_days_data, n_days_projection, legend=legend, current=False, pct_variant=pct_variant, pct_variant_update=0.0, overlap=overlap, generation_time=generation_new)
 
   filename = r'%s\projection_%s_%s.png'% (fig_folder, state, date_str)
   plt.savefig(filename, dpi=150, bbox_inches='tight', pad_inches=1)
@@ -411,11 +414,15 @@ if __name__ == '__main__':
   # automatic update of covidtracking.com data
   filepath_historical = data_folder + '/covid_daily.csv'  
   if update_data or not os.path.exists(filepath_historical):
-    print('downloading daily data')
-    with urllib.request.urlopen("https://covidtracking.com/api/v1/states/daily.json") as url:
-        historical = json.loads(url.read().decode())
-    df_historical = pd.DataFrame(historical)
-    df_historical.to_csv(filepath_historical)    
+    print('downloading daily data and exiting')
+ 
+    df = pd.read_csv('https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv')
+    
+    df = df[::-1].reset_index(drop=True)
+
+ 
+    df.to_csv(filepath_historical)  
+    exit()
 
   # get states
   df_b117 = pd.read_csv(data_folder + '/Helix_B117.csv')
@@ -429,7 +436,7 @@ if __name__ == '__main__':
     makeChart(state, n_days_projection, n_days_data, data_folder, update_data, legend=legend, fig_folder=fig_folder, overlap=overlap)
 
 # Data Sources:
-#   Historical rates: The covid tracking project (https://covidtracking.com/data) (using JSON API for daily rates)
+#   Historical rates: New York Times (https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv)
 # 	R0 projection based on historical rates: Epiforecasts: https://epiforecasts.io/covid/posts/national/united-states/ 
 #     Paper for epiforecasts method: "Estimating the time-varying reproduction number of SARS-CoV-2 using national and subnational case counts", Abbot et. al, https://wellcomeopenresearch.org/articles/5-112/v1  
 #   B117 variant percent: Helix: https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard 

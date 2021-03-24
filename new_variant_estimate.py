@@ -241,26 +241,44 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
     init_variant_cases = pct_variant*init_covid_cases
     init_covid_cases -= init_variant_cases
 
+    # HISTORICAL DATA
+    average = padColumn(data, 'average', n_days_projection - projection_overlap)
+
+
+    # PIN FOR UPDATED VARIANT
+    if pct_variant_update > 0:
+    
+
+        variant_gen_time = 5.2
+        variant_days = 30
+        #R_variant = variant_pct_change**(variant_gen_time/variant_days)
+        #print('est R_variant', R_variant)
+        variant_update = np.full(len(dates), np.nan) 
+        variant_update_date = datetime.datetime(2021, 3, 17)
+        variant_date_offset = variant_update_date - dates[0]
+        variant_days_offset = int(variant_date_offset.total_seconds()/(60*60*24))
+        
+        x0 = init_variant_cases
+        x1 = average[variant_days_offset]*pct_variant_update
+        
+        # calculated R based on start and end values of variant
+        R_variant = (x1/x0)**(variant_gen_time/variant_days)
+        
+
+        # updated projection point
+        variant_update[variant_days_offset] = x1
+        variant_update[n_days_data - projection_overlap] = x0
 
 
     # get projections
     projection_covid = projectCases(R_covid, init_covid_cases, n_days_projection  + 1,generation_time=generation_time, pad=len(data) - projection_overlap - 1)
     projection_variant = projectCases(R_variant, init_variant_cases, n_days_projection  + 1, generation_time=generation_time, pad=len(data) - projection_overlap - 1)
+    print('Projection variant for state ', state)
+    # if current:
+    #     for i in range(projection_variant.shape[0]):
+    #         print(i, projection_variant[i])
+    
     projection_total = projection_covid + projection_variant
-
-    # pin for updated variant percent
-    if pct_variant_update > 0:
-      variant_update = np.full(len(dates), np.nan) 
-      variant_update_date = datetime.datetime(2021, 3, 16)
-      variant_date_offset = variant_update_date - dates[0]
-      variant_days_offset = int(variant_date_offset.total_seconds()/(60*60*24))
-
-
-      # updated projection point
-      variant_update[variant_days_offset] = data['average'].iat[-variant_days_offset]*pct_variant_update
-
-      # initial projection point
-      variant_update[n_days_data - projection_overlap] = projection_variant[n_days_data - projection_overlap]
 
 
 
@@ -279,8 +297,8 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
     else:
       x_cutoff = -1
 
-    # HISTORICAL DATA
-    average = padColumn(data, 'average', n_days_projection - projection_overlap)
+
+
 
 
     # HISTORICAL: LINE PLOT #
@@ -366,11 +384,19 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
 
   # calculate R from estimated R0 for all cases
   R_covid = R0/(1.5*pct_variant + (1-pct_variant))
-  R_variant = 1.5*R_covid # 50% increas in reproduction rate
+  #R_variant = 1.5*R_covid # 50% increas in reproduction rate
   generation_epiforecasts = 3.6
   generation_new = 5.2 
   R_covid = np.exp(np.log(R_covid)*generation_new/generation_epiforecasts) # convert to same generation time as V117
-  R_variant = 1.5*R_covid
+  #R_variant = 1.5*R_covid
+
+  # use data to estimate R_variant
+  R_variant = 0 # TMPDEBUG, moving this code
+#   variant_pct_change = pct_variant_update/pct_variant
+#   variant_gen_time = 5.2
+#   variant_days = 30
+#   R_variant = variant_pct_change**(variant_gen_time/variant_days)
+#   print('est R_variant', R_variant)
 
   # lockdown R calculated from requirement to reduce total cases (variant R = 0.9)
   R_covid_lockdown = 0.6 
@@ -389,6 +415,7 @@ def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=Fa
   plt.savefig(filename, dpi=150, bbox_inches='tight', pad_inches=1)
   
   print('Saved ', filename)
+  
   #plt.show()
 
 

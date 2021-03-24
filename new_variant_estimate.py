@@ -399,7 +399,7 @@ if __name__ == '__main__':
   n_days_data = 60
   data_folder = 'data'
   overlap = True
-  update_data = False
+  update_data = False # Set to true to download fresh data for daily historical numbers only
   legend = True
   state = 'ALL' # set to ALL to run all available states
 

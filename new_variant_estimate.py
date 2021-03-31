@@ -89,6 +89,7 @@ state_abbrevs = {
   'WY': 'Wyoming'
 }
 
+R_ratio = {}
 
 
 # Make a projection for cases over n_days
@@ -263,8 +264,11 @@ def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
         
         # calculated R based on start and end values of variant
         R_variant = (x1/x0)**(variant_gen_time/variant_days)
-        
-
+        print('R_variant for ', state, R_variant)
+        print('')
+        print('R_variant RATIO for ', state, R_variant/R_covid)
+        print('')
+        R_ratio[state] = R_variant/R_covid
         # updated projection point
         variant_update[variant_days_offset] = x1
         variant_update[n_days_data - projection_overlap] = x0
@@ -461,6 +465,9 @@ if __name__ == '__main__':
       makeChart(state, n_days_projection, n_days_data, data_folder, update_data, legend=legend, fig_folder=fig_folder, overlap=overlap)
   else:
     makeChart(state, n_days_projection, n_days_data, data_folder, update_data, legend=legend, fig_folder=fig_folder, overlap=overlap)
+
+
+print(R_ratio)
 
 # Data Sources:
 #   Historical rates: New York Times (https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv)

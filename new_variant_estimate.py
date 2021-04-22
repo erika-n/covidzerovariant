@@ -6,27 +6,37 @@ from matplotlib import colors
 from matplotlib.ticker import MaxNLocator
 import matplotlib.ticker as ticker
 import matplotlib.dates as mdates
-from matplotlib import rc,rcParams
+from matplotlib import rc, rcParams
 from matplotlib.dates import DateFormatter
 import matplotlib.ticker as mticker
 import seaborn as sns
 import matplotlib.font_manager
 import matplotlib.dates as mdates
 import datetime
-import urllib.request, json
+import urllib.request
+import json
 
 import os
 
 from matplotlib import rcParams
 from labellines import labelLines
 from scipy import ndimage
+import argparse
 
 
-# Estimate projections for old, B117, and 
+# Estimate projections for old, B117, and
 # combined variants per U.S. state
 
-# Copyright 2021 Erika Nesse and NECSI.org with MIT license 
+# Copyright 2021 Erika Nesse and NECSI.org with MIT license
 # (see LICENSE)
+
+
+# Data Sources:
+#   Historical rates: New York Times (https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv)
+# 	R0 projection based on historical rates: Epiforecasts: https://epiforecasts.io/covid/posts/national/united-states/
+#     Paper for epiforecasts method: "Estimating the time-varying reproduction number of SARS-CoV-2 using national and subnational case counts", Abbot et. al, https://wellcomeopenresearch.org/articles/5-112/v1
+#   B117 variant percent: Helix: https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard
+#   Growth rate for new variant (~50% higher transmission): Martina Reichmuth et al 2021, "Transmission of SARS-CoV-2 variants in Switzerland", https://ispmbern.github.io/covid-19/variants/
 
 
 state_abbrevs = {
@@ -101,49 +111,51 @@ R_ratio = {}
 def projectCases(R, init_cases, n_days=30, pad=0, generation_time=3.6):
 
   days = np.arange(n_days)
-  projection = init_cases*R**(days/generation_time) 
+  projection = init_cases*R**(days/generation_time)
   if pad > 0:
     pad = np.full(pad, np.nan)
-    projection = np.concatenate(( pad, projection))
+    projection = np.concatenate((pad, projection))
 
   return projection
 
 
-
 # Get historical data for this state
 def getDataForState(data, state):
+    state = str(state_abbrevs[state])
+    state_data = data[data['state'] == state].drop('state', axis=1)
+    state_data.index = np.arange(len(state_data))
+    window = 7
+    state_data['case_diff'] = state_data['cases'].iloc[::-1].diff().iloc[::-1]
+    state_data['average'] = state_data['case_diff'].iloc[::-
+        1].rolling(window=window, min_periods=1, center=False).mean().iloc[::-1]
 
-  state_data = data[data['state']==state].drop('state', axis=1)
-  state_data.index = np.arange(len(state_data))
-  window = 7
-  state_data['case_diff'] = state_data['cases'].iloc[::-1].diff().iloc[::-1]
-  state_data['average'] = state_data['case_diff'].iloc[::-1].rolling(window=window, min_periods=1, center=False).mean().iloc[::-1]
-
-  state_data.fillna(0, inplace=True)
-  return state_data
+    state_data.fillna(0, inplace=True)
+    return state_data
 
 # Pad out a column to have the correct number of x axis values
 def padColumn(data, column, n_pad):
-  pad = np.full(n_pad, np.nan) # ignore the pad values in the chart
+  pad = np.full(n_pad, np.nan)  # ignore the pad values in the chart
   padded = np.concatenate((pad, data[column]))[::-1]
 
   return padded
 
 # Set up each matplotlib axis
+
+
 def setUpAxis(axis, y_cutoff, labels=False):
   # DATE FORMATTER #
   date_form = DateFormatter("%#m/%#d")
 
-
   # SETTING LABEL TO TOP & FORMATTING DATE #
-  
-  axis.xaxis.set_label_position('bottom')
-  axis.xaxis.set_major_formatter(date_form)    
 
+  axis.xaxis.set_label_position('bottom')
+  axis.xaxis.set_major_formatter(date_form)
 
   # SETTING Y TICK PARAMETERS #
-  axis.tick_params(axis='y',labelcolor= 'grey',labelsize = 18,width=0, length=8)
-  axis.tick_params(axis='x',labelcolor= 'grey',labelsize = 18,labelrotation=0, width=1.5, length=8)
+  axis.tick_params(axis='y', labelcolor='grey',
+                   labelsize=18, width=0, length=8)
+  axis.tick_params(axis='x', labelcolor='grey', labelsize=18,
+                   labelrotation=0, width=1.5, length=8)
   ticks_loc = axis.get_yticks().tolist()
   axis.yaxis.set_major_locator(mticker.FixedLocator(ticks_loc))
   axis.set_yticklabels(['{:,}'.format(int(x)) for x in ticks_loc])
@@ -154,10 +166,8 @@ def setUpAxis(axis, y_cutoff, labels=False):
   months_fmt = mdates.DateFormatter('%#m/%#d')
   axis.xaxis.set_major_formatter(months_fmt)
 
-
   # SET Y LIMIT #
   axis.set_ylim((0, int(y_cutoff)))
-
 
   # SETTING GRID #
   axis.grid(axis='y')
@@ -168,311 +178,290 @@ def setUpAxis(axis, y_cutoff, labels=False):
     axis.set_ylabel('Cases', fontsize=18, color='grey', labelpad=8)
 
 
-
-        
 # Matplotlib setup
 def setUpPlots(n_plots):
-  rc('font',weight='light')
+  rc('font', weight='light')
   rc('axes', lw=0.01)
   rcParams.update({'figure.autolayout': True})
 
   with plt.style.context("seaborn-white"):
-    fig, axis= plt.subplots(1, n_plots,figsize=(17,7) , squeeze=False)
+    fig, axis = plt.subplots(1, n_plots, figsize=(17, 7), squeeze=False)
   axes = axis.flatten()
   # SETTING WIDTH BETWEEN THE PLOTS #
   plt.subplots_adjust(wspace=0.65)
 
   plt.tight_layout()
-  rc('font',weight='light')
+  rc('font', weight='light')
   rc('axes', lw=0.01)
-
 
     # SETTING NOTE BELOW FIGURE #
   plt.figtext(0.5, -0.2, """Data sources:
 The Covid Tracking Project (historical data)
 Epiforecasts (projected R)
 Helix (B117 percentage)
-M. Reichmuth et al 2021 (~50% increase for new variant)"""
-      , ha="center", fontsize=18, bbox={ "facecolor":"white", "pad":5})
+M. Reichmuth et al 2021 (~50% increase for new variant)""", ha="center", fontsize=18, bbox={"facecolor": "white", "pad": 5})
 
   return axes
 
 
+
+
 # Make a sub-chart of historical and projection data
-def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant, 
-    axis, header_text, n_days_data, n_days_projection, legend=False, current=True, pct_variant=1.0, pct_variant_update=0.0, overlap=False, generation_time=4):
+# def makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant,
+#     axis, header_text, n_days_data, n_days_projection, current=True, pct_variant=1.0, pct_variant_update=0.0, overlap=False, generation_time=4):
+
+def makeSubChart(state, df_historical, df_r_estimates, df_b117, axis, title='Sample Title', n_days_data=60, n_days_projection=60,
+        current=True):
 
     historical_start_date = df_historical['date'][0]
+    R0 = float(df_r_estimates['R'][state_abbrevs[state]])
 
     if(current):
-      projection_start_date = datetime.datetime(2021, 2, 15)
+        projection_start_date = df_b117.iloc[0]['collection_date']
     else:
-      projection_start_date = datetime.datetime(2021, 3, 23)
+        projection_start_date = historical_start_date
+ 
+      
 
     projection_start_date_str = projection_start_date.strftime("%#m/%#d")
-    projection_overlap = int((historical_start_date - projection_start_date).days)
 
-
-
-    if current and overlap:
-      data=df_historical[:n_days_data]
+    if current:
+        projection_overlap = int(
+            (historical_start_date - projection_start_date).days)
     else:
-      data=df_historical[projection_overlap:n_days_data + projection_overlap]
-      projection_overlap = 0
+        projection_overlap = 0
     
 
+    data = df_historical[:n_days_data]
     data = data.reset_index(drop=True)
 
-
-
     # get dates for x axis
-    dates = pd.date_range(start=data['date'][len(data) -1 ],periods=(len(data) + n_days_projection - projection_overlap), freq='D')
-
+    dates = pd.date_range(start=data['date'][len(
+        data) - 1], periods=(len(data) + n_days_projection - projection_overlap), freq='D')
 
     # PROJECTIONS #
 
-    # 3.6 days generation time (from Epiforecasts model https://epiforecasts.io/covid/methods)
-
-    # initial cases per day for original strain
+    # initial cases
 
     init_covid_cases = data['average'].iat[projection_overlap]
 
-    # initial cases per day for B117 variant
+    init_variant_cases = df_b117.loc[0]['ratio_B117']*init_covid_cases
+    init_covid_cases = init_covid_cases - init_variant_cases
 
-    init_variant_cases = pct_variant*init_covid_cases
-    init_covid_cases -= init_variant_cases
 
     # HISTORICAL DATA
-    average = padColumn(data, 'average', n_days_projection - projection_overlap)
+    average = padColumn(
+        data, 'average', n_days_projection - projection_overlap)
 
 
-    # PIN FOR UPDATED VARIANT
-    if pct_variant_update > 0:
-    
+    # Generation time for R
+    generation_time = 5.2
 
-        variant_gen_time = 5.2
-        variant_days = 30
-        #R_variant = variant_pct_change**(variant_gen_time/variant_days)
-        #print('est R_variant', R_variant)
-        variant_update = np.full(len(dates), np.nan) 
-        variant_update_date = datetime.datetime(2021, 3, 17)
-        variant_date_offset = variant_update_date - dates[0]
-        variant_days_offset = int(variant_date_offset.total_seconds()/(60*60*24))
+    if current:
+
+        # VARIANT DATA POINTS
         
-        x0 = init_variant_cases
-        x1 = average[variant_days_offset]*pct_variant_update
+        variant_data_points = np.full(len(dates), np.nan)
+        x_vals = []
+        for index, row in df_b117.iterrows():
+
+            x = int((row['collection_date'] - dates[0]).days)
+
         
-        # calculated R based on start and end values of variant
-        R_variant = (x1/x0)**(variant_gen_time/variant_days)
-        print('R_variant for ', state, R_variant)
-        print('')
-        print('R_variant RATIO for ', state, R_variant/R_covid)
-        print('')
+            x_vals.append(x)
+            y = average[x]*row['ratio_B117']
+            variant_data_points[x] = y
+
+        # VARIANT R
+        ratio_B117 = df_b117['ratio_B117'][0]
+        R_covid = R0/(1.5*ratio_B117 + (1-ratio_B117))
+
+        v0 = variant_data_points[x_vals[0]]
+        v1 = variant_data_points[x_vals[-1]]
+
+        variant_days = int(
+            (df_b117.iloc[-1]['collection_date'] - df_b117.iloc[0]['collection_date']).days)
+
+        R_variant = (v1/v0)**(generation_time/variant_days)
+
         R_ratio[state] = R_variant/R_covid
-        # updated projection point
-        variant_update[variant_days_offset] = x1
-        variant_update[n_days_data - projection_overlap] = x0
 
 
-    # get projections
-    projection_covid = projectCases(R_covid, init_covid_cases, n_days_projection  + 1,generation_time=generation_time, pad=len(data) - projection_overlap - 1)
-    projection_variant = projectCases(R_variant, init_variant_cases, n_days_projection  + 1, generation_time=generation_time, pad=len(data) - projection_overlap - 1)
-    print('Projection variant for state ', state)
-    # if current:
-    #     for i in range(projection_variant.shape[0]):
-    #         print(i, projection_variant[i])
-    
+    else:
+        # R target for lockdown
+        R_covid = 0.6
+        R_variant = 1.5*R_covid
+
+
+
+    # PROJECTIONS
+
+    projection_covid = projectCases(R_covid, init_covid_cases, n_days_projection + 1,
+                                    generation_time=generation_time, pad=len(data) - projection_overlap - 1)
+    projection_variant = projectCases(R_variant, init_variant_cases, n_days_projection + 1,
+                                      generation_time=generation_time, pad=len(data) - projection_overlap - 1)
+
     projection_total = projection_covid + projection_variant
-
-
 
     # cutoff where greater than y_cutoff
     y_cutoff = data['average'].max()
     x_cutoff = np.where(projection_total > y_cutoff)
 
     if len(x_cutoff) > 0 and x_cutoff[0].size > 0:
-      x_cutoff = x_cutoff[0][0] 
+      x_cutoff = x_cutoff[0][0]
 
       if x_cutoff > 1:
         projection_total[x_cutoff + 1:] = np.nan
 
         projection_variant[x_cutoff + 1:] = np.nan
-        #projection_covid[x_cutoff:] = np.nan
+        # projection_covid[x_cutoff:] = np.nan
     else:
       x_cutoff = -1
 
+    # PLOT DATA #
+    axis.plot(dates, average, color='black', lw=3, label='7 day avg')
 
-
-
-
-    # HISTORICAL: LINE PLOT #
-    axis.plot(dates, average, color = 'black', lw=3, label='7 day avg')
-
-
-    # PROJECTION PLOTS #
-
-    old_var_str = r"Old: R=%.2f"% (R_covid)
-    new_var_str = r"B117: R=%.2f"%(R_variant)
-    axis.plot(dates, projection_covid, '--', color='blue', lw=1, label=old_var_str)
-    axis.plot(dates, projection_variant, '--', color='red', lw=2, label=new_var_str)
+    old_var_str = r"Old: R=%.2f" % (R_covid)
+    new_var_str = r"B117: R=%.2f" % (R_variant)
+    axis.plot(dates, projection_covid, '--',
+              color='blue', lw=1, label=old_var_str)
+    axis.plot(dates, projection_variant, '--',
+              color='red', lw=2, label=new_var_str)
     axis.plot(dates, projection_total, color='blue', lw=1, label="Total")
 
-    # # UPDATED B117 PCT PLOT #
-    if pct_variant_update > 0:
-      axis.scatter(dates, variant_update, color='green', label='B117 data points')
+    if current:
+      axis.scatter(dates, variant_data_points, color='green',
+                   label='B117 data points')
 
     # VERTICAL LINE FOR PROJECTION START #
 
-    #if current:
-    axis.vlines(dates[n_days_data - projection_overlap], 0, 0.8*y_cutoff, color='grey')
-    axis.text(dates[n_days_data - projection_overlap + 3], 0.6*y_cutoff, "Projection\nstart (" + projection_start_date_str + ")", fontsize=16, color='grey')
+    # if current:
+    axis.vlines(dates[n_days_data - projection_overlap],
+                0, 0.8*y_cutoff, color='grey')
+    axis.text(dates[n_days_data - projection_overlap + 3], 0.6*y_cutoff,
+              "Projection\nstart (" + projection_start_date_str + ")", fontsize=16, color='grey')
 
     # SUBPLOT TITLE#
-    axis.set_title(header_text,fontsize=18, y=1.03, alpha=0.9, fontweight='bold')
+    axis.set_title(title, fontsize=18, y=1.03,
+                   alpha=0.9, fontweight='bold')
 
     axis_cutoff = 1.65*y_cutoff
-    
-    axis_cutoff = int(1500*axis_cutoff)/1500 -1
-    setUpAxis(axis, axis_cutoff, current)
-    
-    if legend:
-      axis.legend(fontsize=16, loc='best')        
 
+    axis_cutoff = int(1500*axis_cutoff)/1500 - 1
+    setUpAxis(axis, axis_cutoff, current)
+
+ 
+    axis.legend(fontsize=16, loc='best')
+
+
+def makeChartsForState(state, df_historical, df_r_estimates, df_b117, fig_folder='new_figs', n_days_data=90, n_days_projection=90):
+    state_full_name = str(state_abbrevs[state])
+    date = df_historical['date'][0]
+    date_str = date.strftime("%#m-%#d-%Y")
+
+    title_variant = r'%s projections for new variants' % (
+        state_full_name.upper())
+    title_covidzero = 'Projections with #CovidZero policies in place'
+    
+    axes = setUpPlots(2)
+
+    makeSubChart(state, df_historical, df_r_estimates, df_b117, axes[0], title=title_variant, n_days_data=n_days_data, n_days_projection=n_days_projection,
+        current=True)
+    makeSubChart(state, df_historical, df_r_estimates, df_b117, axes[1], title=title_covidzero, n_days_data=n_days_data, n_days_projection=n_days_projection,
+        current=False)
+    
+
+    filename = r'%s\projection_%s_%s.png' % (fig_folder, state, date_str)
+    plt.savefig(filename, dpi=150, bbox_inches='tight', pad_inches=1)
+
+    print('Saved ', filename)
 
 
 # Make a two paneled chart for the given state and values
-def makeChart(state, n_days_projection, n_days_data, data_folder, update_data=False, legend=False, fig_folder='fig', overlap=False):
+def makeAllCharts(states, data_folder, fig_folder):
 
-  print('Making chart for state: ', state)
-  state_full_name = str(state_abbrevs[state])
-  
+    if not os.path.exists(data_folder):
+        os.makedirs(data_folder)
+    if not os.path.exists(fig_folder):
+        os.makedirs(fig_folder)
 
+    filepath_historical = data_folder + '/covid_daily.csv'
+    df_historical = pd.read_csv(filepath_historical, index_col=0)
 
-  if not os.path.exists(data_folder):
-    os.makedirs(data_folder)
-  if not os.path.exists(fig_folder):
-    os.makedirs(fig_folder)
+    # SET UP DATA
+    # historical
+    df_historical['date'] = pd.to_datetime(df_historical.date, format='%Y-%m-%d')
 
+    # r estimates
+    df_r_estimates = pd.read_csv(data_folder + '/R_estimates.csv', index_col=0)
+    # strip whitespace from column headers
+    df_r_estimates.rename(columns=lambda x: x.strip(), inplace=True)
+    df_r_estimates['R'] = df_r_estimates['Effective reproduction no.'].str.split(
+        " ").str.get(0)
 
-  df_historical = pd.read_csv(filepath_historical, index_col=0)
+    # data on B117 rates
+    df_b117 = pd.read_csv(data_folder + '/Helix_B117.csv')
+    df_b117.rename(columns=lambda x: x.strip(), inplace=True)
+    df_b117['collection_date'] = pd.to_datetime(
+        df_b117.collection_date, format='%m/%d/%Y')
 
-  # SET UP DATA
-  # historical
-  df_historical['date'] = pd.to_datetime(df_historical.date, format='%Y-%m-%d')
-  df_historical = getDataForState(df_historical, state_full_name)
-  # last date of historical data
-  date = df_historical['date'][0]
-  date_str = date.strftime("%#m-%#d-%Y")
+    # Get total estimated ratio of B117 cases
+    df_b117['ratio_SGTF'] = df_b117['pct_SGTF']/100.0
+    df_b117['ratio_SGTF_B117'] = df_b117['pct_SGTF_B117']/100.0
+    df_b117['ratio_B117'] = df_b117['ratio_SGTF']*df_b117['ratio_SGTF_B117']
 
-  # r estimates
-  df_r_estimates = pd.read_csv(data_folder + '/R_estimates.csv', index_col=0)
-  df_r_estimates.rename(columns=lambda x: x.strip(), inplace=True)
-  df_r_estimates['R'] = df_r_estimates['Effective reproduction no.'].str.split(" ").str.get(0)
+    for state in states:
+        df_historical_state = getDataForState(df_historical, state)
+        df_b117_state = df_b117[df_b117['state'] == state].copy()
+        df_b117_state = df_b117_state.set_index('date_code', drop=True)
+        makeChartsForState(state, df_historical_state, df_r_estimates, df_b117_state, fig_folder=args.fig_folder, n_days_data=args.n_days_data, n_days_projection=args.n_days_projection)
+    
 
-  # data on B117 rates
-  df_b117 = pd.read_csv(data_folder + '/Helix_B117.csv', index_col=0)
-  df_b117_update = pd.read_csv(data_folder + '/Helix_B117_update.csv', index_col=0)
-
-  # Estimated R0
-  R0 = float(df_r_estimates['R'][state_full_name])
-
-  # calculate pct_variant = pct cases SGTF*pct of SGTF cases B117 (5 day moving avg)
-  pct_SGTF = df_b117['pct_SGTF'][state]/100.0 
-  pct_SGTF_B117 = df_b117['pct_SGTF_B117'][state]/100.0
-  pct_variant = pct_SGTF*pct_SGTF_B117
-
-  pct_SGTF_update = df_b117_update['pct_SGTF'][state]/100.0 
-  pct_SGTF_B117_update = df_b117_update['pct_SGTF_B117'][state]/100.0
-  pct_variant_update = pct_SGTF_update*pct_SGTF_B117_update
-
-
-  # calculate R from estimated R0 for all cases
-  R_covid = R0/(1.5*pct_variant + (1-pct_variant))
-  #R_variant = 1.5*R_covid # 50% increas in reproduction rate
-  generation_epiforecasts = 3.6
-  generation_new = 5.2 
-  R_covid = np.exp(np.log(R_covid)*generation_new/generation_epiforecasts) # convert to same generation time as V117
-  #R_variant = 1.5*R_covid
-
-  # use data to estimate R_variant
-  R_variant = 0 # TMPDEBUG, moving this code
-#   variant_pct_change = pct_variant_update/pct_variant
-#   variant_gen_time = 5.2
-#   variant_days = 30
-#   R_variant = variant_pct_change**(variant_gen_time/variant_days)
-#   print('est R_variant', R_variant)
-
-  # lockdown R calculated from requirement to reduce total cases (variant R = 0.9)
-  R_covid_lockdown = 0.6 
-  R_variant_lockdown = 1.5*R_covid_lockdown
-
-
-  # CHART SETUP
-  title_current = r'%s projections for new variants'% (state_full_name.upper())
-  title_covidzero = 'Projections with #CovidZero policies in place'
-
-  axes = setUpPlots(2)
-  makeSubChart(df_historical, df_r_estimates, state, R_covid, R_variant, axes[0], title_current, n_days_data, n_days_projection, legend=legend, current=True, pct_variant=pct_variant, pct_variant_update=pct_variant_update, overlap=overlap, generation_time=generation_new)
-  makeSubChart(df_historical, df_r_estimates, state, R_covid_lockdown, R_variant_lockdown, axes[1], title_covidzero, n_days_data, n_days_projection, legend=legend, current=False, pct_variant=pct_variant, pct_variant_update=0.0, overlap=overlap, generation_time=generation_new)
-
-  filename = r'%s\projection_%s_%s.png'% (fig_folder, state, date_str)
-  plt.savefig(filename, dpi=150, bbox_inches='tight', pad_inches=1)
-  
-  print('Saved ', filename)
-  
-  #plt.show()
-
-
-  
 if __name__ == '__main__':
   # SETTINGS #
-  n_days_projection = 90
-  n_days_data = 60
-  data_folder = 'data'
-  overlap = True
-  update_data = False # Set to true to download fresh data for daily historical numbers only
-  legend = True
-  state = 'ALL' # set to ALL to run all available states
 
-  if overlap:
-    fig_folder='figs_overlap'
-  else:
-    fig_folder = 'figs'
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--n_days_projection", type=int,
+                        default="60", help="number of days to project")
+    parser.add_argument("--n_days_data", type=int, default=90,
+                        help="number of days of historical data")
+    parser.add_argument("--update_data", default=False,
+                        type=bool, help="update historical data")
+    parser.add_argument("--state", default='ALL',
+                        type=str, help="specify a state")
+    parser.add_argument("--fig_folder", default='new_figs',
+                        type=str, help="specify a state")
+    parser.add_argument("--data_folder", default='data',
+                        type=str, help="specify a state")
+
+    args = parser.parse_args()
 
 
-  
   # DOWNLOAD HISTORICAL DATA #
   # automatic update of covidtracking.com data
-  filepath_historical = data_folder + '/covid_daily.csv'  
-  if update_data or not os.path.exists(filepath_historical):
-    print('downloading daily data and exiting')
+    filepath_historical = args.data_folder + '/covid_daily.csv'
+    if args.update_data or not os.path.exists(filepath_historical):
+        print('downloading daily data')
  
-    df = pd.read_csv('https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv')
-    
-    df = df[::-1].reset_index(drop=True)
+        df = pd.read_csv('https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv')
+        df = df[::-1].reset_index(drop=True)
+        df.to_csv(filepath_historical)  
 
- 
-    df.to_csv(filepath_historical)  
-    exit()
 
   # get states
-  df_b117 = pd.read_csv(data_folder + '/Helix_B117.csv')
-  states = df_b117['state']
+    df_b117 = pd.read_csv(args.data_folder + '/Helix_B117.csv')
+    states = df_b117['state'].tolist()
+    states = list(dict.fromkeys(states))
+    if args.state != 'ALL':
+        if not args.state in states:
+            print('state not in set of available states (see Helix_B117 data)')
+            exit()
+        states = [args.state]
 
-  # make charts
-  if state == 'ALL':
-    for state in states:
-      makeChart(state, n_days_projection, n_days_data, data_folder, update_data, legend=legend, fig_folder=fig_folder, overlap=overlap)
-  else:
-    makeChart(state, n_days_projection, n_days_data, data_folder, update_data, legend=legend, fig_folder=fig_folder, overlap=overlap)
+    # make charts
+    makeAllCharts(states, args.data_folder, args.fig_folder)
 
+    print('Ratio of R_variant to R_covid as measured')
+    print(R_ratio)
 
-print(R_ratio)
-
-# Data Sources:
-#   Historical rates: New York Times (https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv)
-# 	R0 projection based on historical rates: Epiforecasts: https://epiforecasts.io/covid/posts/national/united-states/ 
-#     Paper for epiforecasts method: "Estimating the time-varying reproduction number of SARS-CoV-2 using national and subnational case counts", Abbot et. al, https://wellcomeopenresearch.org/articles/5-112/v1  
-#   B117 variant percent: Helix: https://public.tableau.com/profile/helix6052#!/vizhome/SGTFDashboard/SGTFDashboard 
-#   Growth rate for new variant (~50% higher transmission): Martina Reichmuth et al 2021, "Transmission of SARS-CoV-2 variants in Switzerland", https://ispmbern.github.io/covid-19/variants/
 

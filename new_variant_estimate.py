@@ -19,7 +19,8 @@ import json
 import os
 
 from matplotlib import rcParams
-from labellines import labelLines
+
+from labellines import labelLines  #pip install matplotlib-label-lines
 from scipy import ndimage
 import argparse
 
@@ -230,7 +231,11 @@ def makeSubChart(state, df_historical, df_r_estimates, df_b117, axis, title='Sam
             (historical_start_date - projection_start_date).days)
     else:
         projection_overlap = 0
-    
+
+    print(historical_start_date)
+    print(projection_start_date)
+    print(projection_overlap)
+
 
     data = df_historical[:n_days_data]
     data = data.reset_index(drop=True)
@@ -273,16 +278,29 @@ def makeSubChart(state, df_historical, df_r_estimates, df_b117, axis, title='Sam
             variant_data_points[x] = y
 
         # VARIANT R
+
+        # USING TWO VARIANT POINTS
         ratio_B117 = df_b117['ratio_B117'][0]
         R_covid = R0/(1.5*ratio_B117 + (1-ratio_B117))
 
         v0 = variant_data_points[x_vals[0]]
-        v1 = variant_data_points[x_vals[-1]]
+        # v1 = variant_data_points[x_vals[-1]] # LAST DATA POINT
+        v1 = variant_data_points[x_vals[1]] # FIRST DATA POINT (to match March projections)
 
         variant_days = int(
-            (df_b117.iloc[-1]['collection_date'] - df_b117.iloc[0]['collection_date']).days)
+            (df_b117.iloc[1]['collection_date'] - df_b117.iloc[0]['collection_date']).days)
 
         R_variant = (v1/v0)**(generation_time/variant_days)
+
+        # USING R0 FROM EPIFORECASTS
+
+        # pct_variant = df_b117['ratio_B117'][0]
+        # R_covid = R0/(1.5*pct_variant + (1-pct_variant))
+        # R_variant = 1.5*R_covid # 50% increas in reproduction rate
+        # generation_epiforecasts = 3.6
+        # generation_new = 5.2 
+        # R_covid = np.exp(np.log(R_covid)*generation_new/generation_epiforecasts) # convert to same generation time as V117
+        # R_variant = 1.5*R_covid
 
         R_ratio[state] = R_variant/R_covid
 
@@ -425,8 +443,7 @@ if __name__ == '__main__':
                         default="60", help="number of days to project")
     parser.add_argument("--n_days_data", type=int, default=90,
                         help="number of days of historical data")
-    parser.add_argument("--update_data", default=False,
-                        type=bool, help="update historical data")
+    parser.add_argument("--update_data", action='store_true', help="update historical data")
     parser.add_argument("--state", default='ALL',
                         type=str, help="specify a state")
     parser.add_argument("--fig_folder", default='new_figs',

@@ -285,10 +285,10 @@ def makeSubChart(state, df_historical, df_r_estimates, df_b117, axis, title='Sam
 
         v0 = variant_data_points[x_vals[0]]
         # v1 = variant_data_points[x_vals[-1]] # LAST DATA POINT
-        v1 = variant_data_points[x_vals[1]] # FIRST DATA POINT (to match March projections)
+        v1 = variant_data_points[x_vals[2]] # FIRST DATA POINT (to match March projections)
 
         variant_days = int(
-            (df_b117.iloc[1]['collection_date'] - df_b117.iloc[0]['collection_date']).days)
+            (df_b117.iloc[2]['collection_date'] - df_b117.iloc[0]['collection_date']).days)
 
         R_variant = (v1/v0)**(generation_time/variant_days)
 
